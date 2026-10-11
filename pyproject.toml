@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "crock"
 version = "0.1.0"
-description = "Typed Crockford base32 for bytes and integers, with normalization and an optional check symbol"
+description = "Typed Crockford base32 for bytes and ints, with normalization and an optional check symbol"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
