@@ -2,11 +2,11 @@
 
 Progress:
 - [x] Brainstorm ranked improvements (this file)
-- [ ] Strict, canonical bytes decoding (impossible lengths and non-zero pad bits rejected)
-- [ ] Check symbol over the value of the symbols, shared by bytes and integers
-- [ ] Linear time codecs for large inputs
-- [ ] Input types: bytes-like in, `TypeError` for wrong types, `bool` and floats refused
-- [ ] `normalize`, `width` and `group`
+- [x] Strict, canonical bytes decoding (impossible lengths and non-zero pad bits rejected)
+- [x] Check symbol over the value of the symbols, shared by bytes and integers
+- [x] Linear time codecs for large inputs
+- [x] Input types: bytes-like in, `TypeError` for wrong types, `bool` and floats refused
+- [x] `normalize`, `width` and `group`
 - [ ] Contracts: fetched golden vectors, reference model, error detection proof, typing, README examples, installed wheel e2e
 - [ ] Docs: README, CHANGELOG, docstrings, packaging metadata
 - [ ] Gates: ruff format, ruff check, mypy --strict, pytest
