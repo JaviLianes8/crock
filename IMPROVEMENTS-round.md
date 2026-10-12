@@ -88,3 +88,14 @@ for "one value, one code" to hold.
 Left out on purpose: a command line tool (`python -c` covers one-offs and the library has
 nothing to configure), a lenient mode that accepts non-zero pad bits, whitespace stripping
 (callers decide what surrounds a code), and ULID generation (a different library).
+
+## Verification
+
+- Gates: `ruff format --check .`, `ruff check .`, `mypy --strict src` (also `src tests`)
+  and `pytest` exit 0 on Windows with Python 3.13; the wheel e2e passes with `CROCK_E2E=1`.
+- Mutations: 32 guards were removed or altered one at a time on a copy of the tree (the
+  length and pad bit checks, the pad mask, the check over the symbol value, aliases, lower
+  case, hyphen removal, symbol validation, the check symbol table and its aliases, the check
+  verification in each decoder and in `normalize`, type refusals, the negative and empty
+  cases, leading zeros, `width`, `group`, and the linear integer codecs replaced by the
+  quadratic loops of 0.1.0). Every one made the suite fail.
