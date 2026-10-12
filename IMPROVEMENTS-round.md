@@ -10,7 +10,7 @@ Progress:
 - [x] Contracts: fetched golden vectors, reference model, error detection proof, typing, README examples, installed wheel e2e
 - [x] Docs: README, CHANGELOG, docstrings, packaging metadata
 - [x] Gates: ruff format, ruff check, mypy --strict, pytest
-- [ ] Independent review findings fixed with regression tests
+- [x] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
 ## Starting point
@@ -69,7 +69,7 @@ for "one value, one code" to hold.
 2. **One check symbol definition.** The check is the number the symbols spell, mod 37, for
    bytes and integers alike. Proven to catch every single wrong symbol and every adjacent
    transposition in the body, exhaustively on short codes and at random on long ones.
-3. **Linear time.** Bytes go through the C base32 codec with a translated alphabet;
+3. **Linear time.** Bytes go through the standard library base32 codec with a translated alphabet;
    integers through `int.to_bytes` and `int(text, 32)` after validation (power-of-two bases
    are exempt from the int string conversion limit). A test pins megabyte inputs.
 4. **Honest types.** `encode` takes any bytes-like object; `encode_int` takes anything with
@@ -98,4 +98,30 @@ nothing to configure), a lenient mode that accepts non-zero pad bits, whitespace
   case, hyphen removal, symbol validation, the check symbol table and its aliases, the check
   verification in each decoder and in `normalize`, type refusals, the negative and empty
   cases, leading zeros, `width`, `group`, and the linear integer codecs replaced by the
-  quadratic loops of 0.1.0). Every one made the suite fail.
+  quadratic loops of 0.1.0). Every one made the suite fail. The review added a 33rd (`normalize` returning the check
+  symbol as typed), which survived and is now killed by a new test.
+
+## Review findings fixed
+
+- `normalize(check=True)` could have returned the check symbol as typed (`15O` for `15o`)
+  without any test noticing; tests now pin alias check symbols.
+- The README said `decode_int(code, check=True)` verifies every checked bytes code; the code
+  for empty bytes (`"0"`) is an empty number and is refused. The README says so and a test
+  pins it.
+- The check symbol cannot catch an inserted or dropped symbol, and a dropped leading `0` in a
+  checked bytes code still decodes to other bytes. This is the spec's mod 37 rule, kept; the
+  README now says it and a test pins it.
+- `encode` was typed `bytes | bytearray | memoryview` while documented to take any buffer;
+  it is typed with the buffer protocol now.
+- The README claimed `base32-crockford` is the only dedicated package on PyPI; it is the most
+  used one. The license link is absolute so it works on PyPI.
+- The ULID time vector is labelled as derived; the `decode_int` scaling case was sized above
+  the timer floor; the odd length error reads correctly in the singular.
+
+## Left uncovered
+
+- The check symbol does not detect insertions, deletions or dropped leading zeros (spec
+  limitation, documented).
+- `encode_int(-1)` raises `CrockfordError` (a `ValueError`), while a bad `width` raises a
+  plain `ValueError`; kept for compatibility with 0.1.0.
+- Scaling is checked by timing ratios, which a very noisy machine could still disturb.

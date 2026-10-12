@@ -48,7 +48,7 @@ def decode_bytes(symbols: str) -> bytes:
     """Decode canonical symbols, rejecting lengths and pad bits no encoder produces."""
     length = len(symbols)
     if length % 8 in _IMPOSSIBLE_LENGTHS:
-        raise CrockfordError(f"{length} symbols cannot encode a whole number of bytes")
+        raise CrockfordError(f"a length of {length} cannot encode a whole number of bytes")
     extra = 5 * length % 8
     if extra and ENCODE.index(symbols[-1]) & ((1 << extra) - 1):
         raise CrockfordError(f"non-zero pad bits in the last symbol {symbols[-1]!r}")

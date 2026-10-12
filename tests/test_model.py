@@ -100,3 +100,18 @@ def test_decoding_arbitrary_text_matches_the_model(seed: int) -> None:
             assert decode_int(text) == int(
                 "".join(format(SYMBOLS.index(c), "05b") for c in canonical), 2
             )
+
+
+def test_check_on_arbitrary_text_matches_the_model() -> None:
+    rng = random.Random(300)
+    for _ in range(2000):
+        body = "".join(rng.choice(SYMBOLS + "ilo-") for _ in range(rng.randrange(1, 10)))
+        symbol = rng.choice(CHECKS)
+        if not model_normalize(body):
+            continue
+        value = int("".join(format(SYMBOLS.index(c), "05b") for c in model_normalize(body)), 2)
+        if CHECKS[value % 37] == symbol:
+            assert decode_int(body + symbol, check=True) == value
+        else:
+            with pytest.raises(CrockfordError):
+                decode_int(body + symbol, check=True)

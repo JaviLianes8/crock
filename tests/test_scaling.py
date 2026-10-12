@@ -35,7 +35,8 @@ def _ratio(make: Callable[[int], Callable[[], object]]) -> float:
         lambda size: lambda: encode(bytes(size), check=True),
         lambda size: lambda: decode("0" * (size // 5 * 8), check=False),
         lambda size: lambda: encode_int(1 << (8 * size), check=True),
-        lambda size: lambda: decode_int("Z" * size, check=False),
+        # 32 times the size: int() on base 32 text is fast enough to hide under the timer floor.
+        lambda size: lambda: decode_int("Z" * (32 * size), check=False),
     ],
     ids=["encode", "decode", "encode_int", "decode_int"],
 )

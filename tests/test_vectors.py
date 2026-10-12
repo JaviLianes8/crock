@@ -30,7 +30,9 @@ SPEC_CHECK_TABLE = [
 JBITTEL_ENCODE = [(1234, False, None, "16J"), (1234, True, None, "16JD"), (0, True, None, "00")]
 JBITTEL_SPLIT = [(123456, 2, "3R-J0"), (123456, 3, "3RJ-0")]
 
-# https://raw.githubusercontent.com/ulid/spec/master/README.md
+# https://raw.githubusercontent.com/ulid/spec/master/README.md prints the largest ULID and says
+# its time part is 281474976710655 (2^48 - 1). Derived: the values 2**128 - 1 for the whole
+# string and the 10 symbol time part, read as the first 10 symbols of that string.
 ULID_MAX = ("7ZZZZZZZZZZZZZZZZZZZZZZZZZ", 2**128 - 1)
 ULID_MAX_TIME = ("7ZZZZZZZZZ", 281474976710655)
 

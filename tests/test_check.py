@@ -130,3 +130,24 @@ def test_normalize_with_check_verifies_and_canonicalizes() -> None:
     assert normalize("14u", check=True) == "14U"
     with pytest.raises(CrockfordError):
         normalize("16JE", check=True)
+
+
+def test_normalize_canonicalizes_an_alias_in_the_check_position() -> None:
+    assert normalize("15o", check=True) == "150"
+    assert normalize("1-I", check=True) == "11"
+    assert normalize("1l", check=True) == "11"
+
+
+def test_empty_bytes_code_is_not_an_integer_code() -> None:
+    assert decode("0", check=True) == b""
+    assert normalize("0", check=True) == "0"
+    with pytest.raises(CrockfordError, match="empty"):
+        decode_int("0", check=True)
+
+
+def test_dropped_leading_zero_is_not_caught_as_documented() -> None:
+    data = bytes.fromhex("06a8e9b4a9b0853e02d8")
+    code = encode(data, check=True)
+    assert code == "0TMEKD59P22KW0PR1"
+    assert decode(code[1:], check=True) != data
+    assert decode_int("10-*", check=True) == 32

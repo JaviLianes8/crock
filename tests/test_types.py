@@ -38,7 +38,7 @@ def test_encode_accepts_a_strided_memoryview() -> None:
 
 def test_encode_reads_other_buffers_as_raw_bytes() -> None:
     numbers = array.array("H", [1, 2])
-    assert encode(numbers) == encode(numbers.tobytes())  # type: ignore[arg-type]
+    assert encode(numbers) == encode(numbers.tobytes())
 
 
 @pytest.mark.parametrize("data", ["hello", 5, [1, 2], None])

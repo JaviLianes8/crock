@@ -2,16 +2,22 @@
 
 from __future__ import annotations
 
-from typing import SupportsIndex
+import sys
+from typing import TYPE_CHECKING, SupportsIndex
 
 from ._alphabet import canonical, check_symbol, require_str, split_check, verify_check
 from ._bytes import as_bytes, check_value, decode_bytes, encode_bytes
 from ._ints import as_int, decode_number, encode_number
 
-BytesLike = bytes | bytearray | memoryview
+if TYPE_CHECKING:
+    # Any object with the buffer protocol; the annotation costs nothing at run time.
+    if sys.version_info >= (3, 12):
+        from collections.abc import Buffer
+    else:
+        from typing_extensions import Buffer
 
 
-def encode(data: BytesLike, *, check: bool = False, group: SupportsIndex | None = None) -> str:
+def encode(data: Buffer, *, check: bool = False, group: SupportsIndex | None = None) -> str:
     """Encode bytes as upper-case symbols, zero-extending the last symbol on the right.
 
     ``check`` appends the check symbol (the value of the symbols mod 37). ``group`` inserts a

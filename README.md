@@ -5,7 +5,8 @@ Typed Crockford base32 for bytes and ints, with normalization and an optional ch
 [Crockford's base32](https://www.crockford.com/base32.html) spells numbers with 32 symbols
 that people can read aloud and type back: digits and upper-case letters without I, L, O and
 U. Decoding forgives case, reads I and L as 1 and O as 0, and ignores hyphens. An optional
-check symbol catches a mistyped or swapped symbol before it reaches your database.
+check symbol catches a mistyped symbol or two swapped neighbours before they reach your
+database.
 
 ## Install
 
@@ -79,9 +80,12 @@ print(crock.normalize("16j-d", check=True))  # 16JD
   `memoryview` or any other buffer.
 - The check symbol is the number the symbols spell, mod 37, written with the extra symbols
   `*`, `~`, `$`, `=` and `U` for 32 to 36. It is the same rule for bytes and integers, so
-  `decode_int(code, check=True)` also verifies a checked bytes code. It catches every single
-  wrong symbol and every swap of two neighbouring symbols. The check symbol is never part of
-  `width`, but `group` counts it.
+  `decode_int(code, check=True)` also verifies any checked bytes code except the one for
+  empty bytes (`"0"`, an empty number). It catches every single wrong symbol and every swap
+  of two neighbouring symbols. It does not catch an inserted or a dropped symbol, and a
+  leading `0` adds nothing to the value: dropping it from a checked bytes code can still
+  decode, to different bytes. The check symbol is never part of `width`, but `group` counts
+  it.
 - Decoders take `str` only and raise `TypeError` for anything else; `encode` raises
   `TypeError` for `str`. Bad `width` or `group` values raise `TypeError` or a plain
   `ValueError`, never `CrockfordError`.
@@ -91,7 +95,7 @@ print(crock.normalize("16j-d", check=True))  # 16JD
 ## Why
 
 Crockford base32 is a human-friendly encoding: no ambiguous characters, forgiving
-on input, with an optional check symbol. On PyPI the only dedicated option,
+on input, with an optional check symbol. On PyPI the most used option,
 `base32-crockford`, encodes integers only, has no type hints, and has not seen a
 release since 2015. `crock` is a clean, zero-dependency, `mypy --strict` take that
 handles both arbitrary bytes and integers, ships the check symbol for both, and
@@ -99,7 +103,7 @@ normalizes look-alikes and hyphens on decode.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](https://github.com/JaviLianes8/crock/blob/main/LICENSE).
 
 ## Links
 
