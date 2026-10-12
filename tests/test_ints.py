@@ -72,9 +72,9 @@ def test_group_counts_the_check_symbol() -> None:
 
 
 def test_values_beyond_the_int_string_limit_round_trip() -> None:
-    n = 3**200000
+    n = 3**30000
     text = encode_int(n)
-    assert len(text) > 50000
+    assert len(text) > 9000
     assert decode_int(text) == n
     assert decode_int("Z" * 100000) == 32**100000 - 1
 

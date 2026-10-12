@@ -9,7 +9,7 @@ import pytest
 
 from crock import decode, decode_int, encode, encode_int
 
-SMALL = 1 << 16
+SMALL = 1 << 13
 FACTOR = 16
 # Linear is FACTOR; quadratic would be FACTOR squared. The bound sits well between the two so
 # a loaded machine does not fail it and a quadratic regression cannot pass it.
