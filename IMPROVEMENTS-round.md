@@ -7,9 +7,9 @@ Progress:
 - [x] Linear time codecs for large inputs
 - [x] Input types: bytes-like in, `TypeError` for wrong types, `bool` and floats refused
 - [x] `normalize`, `width` and `group`
-- [ ] Contracts: fetched golden vectors, reference model, error detection proof, typing, README examples, installed wheel e2e
-- [ ] Docs: README, CHANGELOG, docstrings, packaging metadata
-- [ ] Gates: ruff format, ruff check, mypy --strict, pytest
+- [x] Contracts: fetched golden vectors, reference model, error detection proof, typing, README examples, installed wheel e2e
+- [x] Docs: README, CHANGELOG, docstrings, packaging metadata
+- [x] Gates: ruff format, ruff check, mypy --strict, pytest
 - [ ] Independent review findings fixed with regression tests
 - [ ] Pull request opened, guard clean
 
