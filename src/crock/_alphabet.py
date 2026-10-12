@@ -1,4 +1,4 @@
-"""Crockford base32 symbol tables, decode normalization, and the check alphabet."""
+"""Crockford base32 symbol tables, input normalization, and the check alphabet."""
 
 from __future__ import annotations
 
@@ -12,25 +12,64 @@ CHECK_EXTRA = "*~$=U"
 CHECK_ALPHABET = ENCODE + CHECK_EXTRA
 CHECK_MODULUS = len(CHECK_ALPHABET)
 
-_DECODE: dict[str, int] = {}
-for _index, _symbol in enumerate(ENCODE):
-    _DECODE[_symbol] = _index
-    _DECODE[_symbol.lower()] = _index
+# Every accepted spelling of a symbol, mapped to its canonical form.
+_SPELLINGS: dict[str, str] = {}
+for _symbol in ENCODE:
+    _SPELLINGS[_symbol] = _SPELLINGS[_symbol.lower()] = _symbol
+for _alias, _symbol in (("I", "1"), ("i", "1"), ("L", "1"), ("l", "1"), ("O", "0"), ("o", "0")):
+    _SPELLINGS[_alias] = _symbol
 
-# Decode-time normalization of look-alikes: I and L read as 1, O reads as 0.
+# The spellings as a byte table: other bytes map to themselves, so anything that is not a
+# canonical symbol after translation was invalid input.
+_ASCII_TABLE = bytes(ord(_SPELLINGS.get(chr(code), chr(code))) for code in range(256))
+_VALID_BYTES = ENCODE.encode("ascii")
+
+_CHECK_VALUE: dict[str, int] = {}
+for _index, _symbol in enumerate(CHECK_ALPHABET):
+    _CHECK_VALUE[_symbol] = _index
+    _CHECK_VALUE[_symbol.lower()] = _index
 for _alias, _value in (("I", 1), ("i", 1), ("L", 1), ("l", 1), ("O", 0), ("o", 0)):
-    _DECODE[_alias] = _value
-
-_DECODE_CHECK: dict[str, int] = dict(_DECODE)
-for _index, _symbol in enumerate(CHECK_EXTRA, start=len(ENCODE)):
-    _DECODE_CHECK[_symbol] = _index
-    _DECODE_CHECK[_symbol.lower()] = _index
+    _CHECK_VALUE[_alias] = _value
 
 
-def decode_value(char: str, *, check: bool = False) -> int:
-    """Map a single symbol to its value, applying normalization, or raise."""
-    table = _DECODE_CHECK if check else _DECODE
+def require_str(text: object) -> str:
+    """Return ``text`` if it is a ``str``, else raise ``TypeError``."""
+    if not isinstance(text, str):
+        raise TypeError(f"expected str, got {type(text).__name__}")
+    return text
+
+
+def canonical(text: str) -> str:
+    """Upper-case, alias-free, hyphen-free form of ``text``, or raise on a bad symbol."""
+    if text.isascii():
+        result = text.encode("ascii").translate(_ASCII_TABLE, b"-")
+        if not result.translate(None, _VALID_BYTES):
+            return result.decode("ascii")
+    raise CrockfordError(f"invalid symbol: {_first_invalid(text)!r}")
+
+
+def _first_invalid(text: str) -> str:
+    return next(char for char in text if char != "-" and char not in _SPELLINGS)
+
+
+def split_check(text: str) -> tuple[str, int]:
+    """Split off the trailing check symbol, returning the canonical body and its value."""
+    stripped = text.rstrip("-")
+    if not stripped:
+        raise CrockfordError("check symbol missing")
     try:
-        return table[char]
+        value = _CHECK_VALUE[stripped[-1]]
     except KeyError:
-        raise CrockfordError(f"invalid symbol: {char!r}") from None
+        raise CrockfordError(f"invalid check symbol: {stripped[-1]!r}") from None
+    return canonical(stripped[:-1]), value
+
+
+def check_symbol(value: int) -> str:
+    """The check symbol for a non-negative number."""
+    return CHECK_ALPHABET[value % CHECK_MODULUS]
+
+
+def verify_check(value: int, expected: int) -> None:
+    """Raise unless ``expected`` is the check value of ``value``."""
+    if value % CHECK_MODULUS != expected:
+        raise CrockfordError("check symbol does not match")

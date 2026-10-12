@@ -4,7 +4,14 @@ import crock
 
 # The public API. Add every exported name here as the library grows; this list is the
 # contract and the test below fails if the module and this list disagree.
-PUBLIC_API: list[str] = ["CrockfordError", "decode", "decode_int", "encode", "encode_int"]
+PUBLIC_API: list[str] = [
+    "CrockfordError",
+    "decode",
+    "decode_int",
+    "encode",
+    "encode_int",
+    "normalize",
+]
 
 
 def test_all_lists_exactly_the_public_api() -> None:

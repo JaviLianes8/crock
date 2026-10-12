@@ -1,99 +1,111 @@
-"""Encode and decode bytes and integers in Crockford base32."""
+"""The public encode, decode and normalize functions for bytes and integers."""
 
 from __future__ import annotations
 
-from ._alphabet import CHECK_ALPHABET, CHECK_MODULUS, ENCODE, decode_value
-from ._errors import CrockfordError
+import sys
+from typing import TYPE_CHECKING, SupportsIndex
+
+from ._alphabet import canonical, check_symbol, require_str, split_check, verify_check
+from ._bytes import as_bytes, check_value, decode_bytes, encode_bytes
+from ._ints import as_int, decode_number, encode_number
+
+if TYPE_CHECKING:
+    # Any object with the buffer protocol; the annotation costs nothing at run time.
+    if sys.version_info >= (3, 12):
+        from collections.abc import Buffer
+    else:
+        from typing_extensions import Buffer
 
 
-def encode(data: bytes, *, check: bool = False) -> str:
-    """Encode bytes, appending a check symbol when ``check`` is set."""
-    text = _encode_bytes(data)
+def encode(data: Buffer, *, check: bool = False, group: SupportsIndex | None = None) -> str:
+    """Encode bytes as upper-case symbols, zero-extending the last symbol on the right.
+
+    ``check`` appends the check symbol (the value of the symbols mod 37). ``group`` inserts a
+    hyphen every ``group`` symbols, counted from the left, check symbol included.
+    """
+    raw = as_bytes(data)
+    text = encode_bytes(raw)
     if check:
-        text += CHECK_ALPHABET[int.from_bytes(data, "big") % CHECK_MODULUS]
-    return text
+        text += check_symbol(check_value(raw))
+    return _grouped(text, group)
 
 
-def decode(s: str, *, check: bool = False) -> bytes:
-    """Decode bytes, tolerating hyphens and case, verifying the check symbol."""
-    symbols = s.replace("-", "")
+def decode(text: str, *, check: bool = False) -> bytes:
+    """Decode symbols to bytes, accepting any case, the I/L/O aliases and hyphens.
+
+    Raises ``CrockfordError`` for an invalid symbol, a length or last symbol that no byte
+    string encodes to, or (with ``check``) a missing or wrong check symbol.
+    """
+    require_str(text)
+    if not check:
+        return decode_bytes(canonical(text))
+    body, expected = split_check(text)
+    data = decode_bytes(body)
+    verify_check(check_value(data), expected)
+    return data
+
+
+def encode_int(
+    n: SupportsIndex,
+    *,
+    check: bool = False,
+    width: SupportsIndex | None = None,
+    group: SupportsIndex | None = None,
+) -> str:
+    """Encode a non-negative integer, zero-extended on the left.
+
+    ``width`` left-pads with ``0`` to at least that many symbols (the check symbol is not
+    counted). ``check`` and ``group`` work as in :func:`encode`.
+    """
+    value = as_int(n)
+    text = encode_number(value)
+    if width is not None:
+        text = text.rjust(_non_negative(width, "width"), "0")
     if check:
-        body, expected = _split_check(symbols)
-        data = _decode_bytes(body)
-        if int.from_bytes(data, "big") % CHECK_MODULUS != expected:
-            raise CrockfordError("check symbol does not match")
-        return data
-    return _decode_bytes(symbols)
+        text += check_symbol(value)
+    return _grouped(text, group)
 
 
-def encode_int(n: int, *, check: bool = False) -> str:
-    """Encode a non-negative integer, appending a check symbol when set."""
-    if n < 0:
-        raise CrockfordError("cannot encode a negative integer")
-    text = _encode_int(n)
-    if check:
-        text += CHECK_ALPHABET[n % CHECK_MODULUS]
-    return text
+def decode_int(text: str, *, check: bool = False) -> int:
+    """Decode symbols to a non-negative integer, accepting case, aliases and hyphens.
 
-
-def decode_int(s: str, *, check: bool = False) -> int:
-    """Decode an integer, tolerating hyphens and case, verifying the check symbol."""
-    symbols = s.replace("-", "")
-    if check:
-        body, expected = _split_check(symbols)
-        value = _decode_int(body)
-        if value % CHECK_MODULUS != expected:
-            raise CrockfordError("check symbol does not match")
-        return value
-    return _decode_int(symbols)
-
-
-def _split_check(symbols: str) -> tuple[str, int]:
-    if not symbols:
-        raise CrockfordError("check symbol missing")
-    return symbols[:-1], decode_value(symbols[-1], check=True)
-
-
-def _encode_bytes(data: bytes) -> str:
-    bits = accumulated = 0
-    out: list[str] = []
-    for byte in data:
-        bits = (bits << 8) | byte
-        accumulated += 8
-        while accumulated >= 5:
-            accumulated -= 5
-            out.append(ENCODE[(bits >> accumulated) & 0x1F])
-    if accumulated:
-        out.append(ENCODE[(bits << (5 - accumulated)) & 0x1F])
-    return "".join(out)
-
-
-def _decode_bytes(symbols: str) -> bytes:
-    bits = accumulated = 0
-    out = bytearray()
-    for char in symbols:
-        bits = (bits << 5) | decode_value(char)
-        accumulated += 5
-        if accumulated >= 8:
-            accumulated -= 8
-            out.append((bits >> accumulated) & 0xFF)
-    return bytes(out)
-
-
-def _encode_int(n: int) -> str:
-    if n == 0:
-        return ENCODE[0]
-    out: list[str] = []
-    while n:
-        n, remainder = divmod(n, 32)
-        out.append(ENCODE[remainder])
-    return "".join(reversed(out))
-
-
-def _decode_int(symbols: str) -> int:
-    if not symbols:
-        raise CrockfordError("cannot decode an empty string")
-    value = 0
-    for char in symbols:
-        value = value * 32 + decode_value(char)
+    Raises ``CrockfordError`` for an empty string, an invalid symbol, or (with ``check``) a
+    missing or wrong check symbol.
+    """
+    require_str(text)
+    if not check:
+        return decode_number(canonical(text))
+    body, expected = split_check(text)
+    value = decode_number(body)
+    verify_check(value, expected)
     return value
+
+
+def normalize(text: str, *, check: bool = False) -> str:
+    """The canonical spelling of ``text``: upper case, aliases resolved, hyphens removed.
+
+    With ``check`` the last symbol is read as a check symbol and verified. Two codes for the
+    same value normalize to the same string only if they have the same length.
+    """
+    require_str(text)
+    if not check:
+        return canonical(text)
+    body, expected = split_check(text)
+    verify_check(decode_number(body) if body else 0, expected)
+    return body + check_symbol(expected)
+
+
+def _non_negative(value: object, name: str) -> int:
+    number = as_int(value, name)
+    if number < 0:
+        raise ValueError(f"{name} must not be negative, got {number}")
+    return number
+
+
+def _grouped(text: str, group: SupportsIndex | None) -> str:
+    if group is None:
+        return text
+    size = _non_negative(group, "group")
+    if size == 0:
+        raise ValueError("group must be positive")
+    return "-".join(text[start : start + size] for start in range(0, len(text), size))
