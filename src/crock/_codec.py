@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import SupportsIndex
+
 from ._alphabet import canonical, check_symbol, require_str, split_check, verify_check
 from ._bytes import as_bytes, check_value, decode_bytes, encode_bytes
 from ._ints import as_int, decode_number, encode_number
@@ -9,7 +11,7 @@ from ._ints import as_int, decode_number, encode_number
 BytesLike = bytes | bytearray | memoryview
 
 
-def encode(data: BytesLike, *, check: bool = False, group: int | None = None) -> str:
+def encode(data: BytesLike, *, check: bool = False, group: SupportsIndex | None = None) -> str:
     """Encode bytes as upper-case symbols, zero-extending the last symbol on the right.
 
     ``check`` appends the check symbol (the value of the symbols mod 37). ``group`` inserts a
@@ -38,7 +40,11 @@ def decode(text: str, *, check: bool = False) -> bytes:
 
 
 def encode_int(
-    n: int, *, check: bool = False, width: int | None = None, group: int | None = None
+    n: SupportsIndex,
+    *,
+    check: bool = False,
+    width: SupportsIndex | None = None,
+    group: SupportsIndex | None = None,
 ) -> str:
     """Encode a non-negative integer, zero-extended on the left.
 
@@ -90,7 +96,7 @@ def _non_negative(value: object, name: str) -> int:
     return number
 
 
-def _grouped(text: str, group: int | None) -> str:
+def _grouped(text: str, group: SupportsIndex | None) -> str:
     if group is None:
         return text
     size = _non_negative(group, "group")
