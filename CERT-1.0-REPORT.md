@@ -20,8 +20,9 @@ Progress:
 - [x] QA round 1 findings at be09246 fixed (lenses a, b, d and e) in 65861e0, gates, matrix and new mutants run
 - [x] QA round 2 findings at 770baf0 fixed (lenses b, d and e) in 4ff61a5, gates, matrix with five NumPy versions, WASI and new mutants run
 - [x] QA round 3 findings at 1e2aa94 fixed (lens e) in b233cd3, gates, matrix and the two mutants run
-- [ ] Five QA lenses report PASS (item 19)
-- [ ] Independent reviewer reports PASS (item 16)
+- [x] Five QA lenses report PASS (item 19)
+- [x] Independent reviewer reports PASS (item 16)
+- [ ] Final gates on a fresh clone of the pushed head, trace guard CLEAN
 
 ## Scorecard
 
@@ -36,16 +37,16 @@ Progress:
 | 7 | Real ground truth | PASS: 5 files fetched with a hash manifest, 3 independent implementations run |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built and inspected, wheel driven from an empty folder, typed consumer; no CLI; not on PyPI, so no upgrade |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS at 4ff61a5: CPython 3.10.19 (NumPy 2.2.6), 3.11.5 (NumPy 2.0.2), 3.12.12 (NumPy 1.26.4), 3.13.2 (NumPy 2.1.3), 3.14.2 (NumPy 2.5.4), 3.14.2 free-threaded (no NumPy); import also checked on WASI CPython 3.11.13 and 3.13.11 |
+| 10 | Supported Pythons | PASS at cb913f0 (independent review): CPython 3.10.22 (NumPy 2.2.6), 3.11.17 (NumPy 1.26.4), 3.12.15 (NumPy 2.0.2), 3.13.17 (NumPy 2.1.3), 3.14.2 (NumPy 2.5.4), 3.14.9 free-threaded with the GIL off; this PC's 3.11.5 and 3.13.2 by the probes and gates; import also checked on WASI CPython 3.11.13 and 3.13.11 at 4ff61a5 |
 | 11 | README and `twine check` | PASS: `twine check --strict`, absolute links, problem, verified comparison, GUIDE and CHANGELOG links |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-22 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
 | 14 | sdist and wheel contents | PASS |
 | 15 | Gates each exit 0 | PASS: see Gates |
-| 16 | Independent reviewer | pending |
-| 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent; the 8 survivors found by the contract-strength lens and 2 more, 10 mutants at 65861e0, all killed; 4 more at 4ff61a5, all killed |
-| 19 | Five independent QA lenses | pending |
+| 16 | Independent reviewer | PASS at cb913f0, round 1: see Independent review |
+| 17 | PR and trace guard | PASS for this stage: PR #3 "crock 1.0.0" from `release/1.0.0` to `main`, trace guard CLEAN; merge and publish left to the maintainer |
+| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent; the 8 survivors found by the contract-strength lens and 2 more, 10 mutants at 65861e0, all killed; 4 more at 4ff61a5 and 2 at b233cd3, all killed (M1 to M68, M27 equivalent); the reviewer's own 16 mutants at cb913f0, all killed |
+| 19 | Five independent QA lenses | PASS: all five lenses, see QA verdicts |
 
 ## Baseline on 0.2.0 (before any change)
 
@@ -384,6 +385,72 @@ with NumPy 1.26.4, 3.13.2 with NumPy 2.1.3 and 3.14.2 with NumPy 2.5.4, 409 pass
 skipped; 3.14.2 free-threaded without NumPy, 403 passed and 2 skipped. Skipped: the two
 e2e tests (they ran with the gates), and on 3.10 and 3.11 the `collections.abc.Buffer`
 test, which needs 3.12.
+
+## QA verdicts (item 19)
+
+Five independent lenses, each run from its own clone, each reporting only back to the
+maintainer. Every finding is listed in the QA sections above, fixed and re-verified by the
+lens that raised it. The evidence folders are in the local certification scratch folder
+(`crock-cert/`), not committed.
+
+| Lens | Runs | Final verdict | Report | Commit |
+| --- | --- | --- | --- | --- |
+| a. API and docs | 2 | PASS | `crock-cert/lens-a-r2/` (probe scripts and results) | 770baf0 |
+| b. Correctness and ground truth | 3 | PASS | `crock-cert/lens-b-r3/REPORT.md` | 1e2aa94 |
+| c. Adversarial and robustness | 2 (db158db, be09246) | PASS | `crock-cert/lens-c-r1/work-r2/` (logs and scripts) | be09246 |
+| d. Packaging and real e2e | 3 | PASS | `crock-cert/lens-d-r3/logs/` | 1e2aa94 |
+| e. Contract strength | 4 | PASS | `crock-cert/lens-e-r4/REPORT.md` and `results.jsonl` | cb913f0 |
+
+- a: A1 and A2 confirmed fixed (16J, 016J, 0000000016J and 016JD with `check` all decode to
+  1234; all 33,824 canonical integer codes of 1 to 3 symbols agree); every README and GUIDE
+  example run on CPython 3.13.2 and 3.11.5 (31 expected outputs, 0 mismatches); every
+  doctest passes; `get_type_hints` resolves on both; `__all__` and the public `dir()` are
+  the six names. Not run there: the `crockford32` side of the `904GF` example (it ships only
+  as a Linux CPython 3.10 wheel), measured by lens b.
+- b: both earlier findings fixed; the independent re-derivation found nothing new.
+- c: 7.2 million decoder calls with 0 mismatches against an independent reference, 2 million
+  type fuzz calls with 0 failures, linear scaling (worst exponent 1.01), no input leaking
+  into messages or exception chains; the round 1 findings (NumPy 1.x booleans, run-time
+  annotations) fixed. Observations, not findings: torch boolean tensors are taken as 0 or 1
+  (the guide allows this as written); the 3.10 and 3.11 annotation stand-in is narrower
+  than what `encode` accepts (documented); a huge `width` raises `MemoryError`
+  (documented).
+- d: D1 and D2 confirmed fixed; wheel and sdist contents, e2e and the interpreter matrix
+  pass.
+- e: own mutation round at 1e2aa94 (27 killed, 7 equivalent, 2 survivors, now M67 and M68);
+  both new contracts confirmed at cb913f0.
+
+Lenses a and c predate the later commits. Those commits came from the findings of lenses b,
+d and e and were re-verified by them; the source change from 1e2aa94 to cb913f0 is a
+comment only. The independent reviewer re-ran the evidence of lenses a and c that matters
+at cb913f0 and it holds.
+
+## Independent review (item 16)
+
+A fresh reviewer audited cb913f0 against the certification list, running every item, and
+posted nothing to GitHub. Verdict: PASS.
+
+| # | Result |
+| --- | --- |
+| 1 | PASS: six names, positional-only first arguments, keyword-only options; every 1.0.0 change in the CHANGELOG |
+| 2 | PASS: on CPython 3.13.2 and 3.11.5 against the installed wheel, `__all__` and the public `dir()` are exactly the six names; the docs import only `crock` |
+| 3 | PASS: doctests of every public object from the wheel (`CrockfordError` 4, `decode` 3, `decode_int` 3, `encode` 3, `encode_int` 3, `normalize` 2); the 4 README and 5 GUIDE blocks run against the wheel with 0 mismatches |
+| 4 | PASS: `mypy --strict src` and `mypy --strict src tests` exit 0 on CPython 3.13.2 and 3.14.2; `py.typed` in the wheel; `get_type_hints` resolves on 3.13 (`collections.abc.Buffer`) and 3.11 (the stand-in); no `Any` in the signatures; the typed consumer passes |
+| 5 | PASS: 1 MiB and 4 MiB hostile inputs through every decoder, with and without `check`: messages under 80 characters naming at most one symbol, linear time (0.07 s or less), error types as in the GUIDE table; pickling keeps `crock.CrockfordError` |
+| 6 | PASS: 416 passed and 2 skipped plain; 418 passed with `CROCK_E2E=1` (CPython 3.14.2, NumPy 2.5.4) |
+| 7 | PASS: the 5 sources re-fetched live, every sha256 matches the manifest; spec, reference and upstream tests ran with no skips; inline vectors carry their URLs, the hand model is labelled; the README comparison facts re-checked live (base32-crockford 0.3.0 of 2015-03-19 with `encode(4.2) == '4'` and `decode('1U') == 68`, base32-lib 1.1.1 integer only with lower-case output, crockford32 1.0.2 only as a cp310 manylinux wheel, python-ulid 4.0.1) |
+| 8 | PASS: the e2e wheel test passes; fresh venvs on six interpreters import from site-packages; no CLI; PyPI answers 404 for `crock`, so no upgrade path |
+| 9 | PASS: fuzz and scaling tests pass on every interpreter; the 7.2 million call logs of lens c show 0 failures |
+| 10 | PASS: the wheel installed and the sdist's suite run with `src` removed: 3.10.22 (NumPy 2.2.6) and 3.11.17 (NumPy 1.26.4) 408 passed and 3 skipped; 3.12.15 (NumPy 2.0.2), 3.13.17 (NumPy 2.1.3) and 3.14.2 (NumPy 2.5.4) 409 passed and 2 skipped; 3.14.9 free-threaded with the GIL off 403 passed and 2 skipped; all exit 0 |
+| 11 | PASS: `twine check --strict` on both files, `readme_renderer[md]` renders cleanly, links absolute and answering 200 except the GUIDE link on `main`, which resolves once the branch is merged; the comparison facts verified |
+| 12 | PASS: `[1.0.0] - 2026-10-22` |
+| 13 | PASS: METADATA 1.0.0, Production/Stable, Python classifiers 3.10 to 3.14 matching `Requires-Python >=3.10`, MIT `License-Expression`, Homepage, Source, Issues and Changelog URLs, keywords, only `dev` extra requirements |
+| 14 | PASS: wheel 11,334 bytes (sha256 aeea46cb...) and sdist 39,923 bytes (2eeb32e8...), byte for byte the ones recorded above; clean contents, LICENSE included, no third-party data |
+| 15 | PASS: each gate exits 0 on its own |
+| 16 | PASS: this review |
+| 17 | PASS for this stage: PR #3 open at cb913f0 with no comments or reviews, history and PR text clean, every commit by the maintainer; merge and publish left to the maintainer |
+| 18 | PASS: M1 to M68 recorded (M27 equivalent, with the reason); 16 further mutants of the reviewer's own, each applied alone with the full suite run with `-x` on CPython 3.14.2 and NumPy 2.5.4, all killed |
+| 19 | PASS: all five lens artefacts present, with the verdicts above |
 
 ## Disputed findings
 
