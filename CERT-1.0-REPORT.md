@@ -19,6 +19,7 @@ Progress:
 - [x] QA round 1 findings fixed (lenses c and e), gates, matrix and mutations rerun at b4f8a3c
 - [x] QA round 1 findings at be09246 fixed (lenses a, b, d and e) in 65861e0, gates, matrix and new mutants run
 - [x] QA round 2 findings at 770baf0 fixed (lenses b, d and e) in 4ff61a5, gates, matrix with five NumPy versions, WASI and new mutants run
+- [x] QA round 3 findings at 1e2aa94 fixed (lens e) in b233cd3, gates, matrix and the two mutants run
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -332,6 +333,55 @@ installed in a fresh venv per interpreter, running the sdist's suite with `src` 
 3.10.19 with NumPy 2.2.6 and 3.11.5 with NumPy 2.0.2, 405 passed and 3 skipped; 3.12.12
 with NumPy 1.26.4, 3.13.2 with NumPy 2.1.3 and 3.14.2 with NumPy 2.5.4, 406 passed and 2
 skipped; 3.14.2 free-threaded without NumPy, 400 passed and 2 skipped. Skipped: the two
+e2e tests (they ran with the gates), and on 3.10 and 3.11 the `collections.abc.Buffer`
+test, which needs 3.12.
+
+## QA round 3 findings at 1e2aa94 and fixes (item 19)
+
+Lens e ran its own mutation round at 1e2aa94 (36 probes: 27 killed, 7 shown equivalent, 2
+survived) and confirmed N19 fixed. Both survivors are missing contracts, not behaviour bugs,
+so the library behaves as before and the CHANGELOG has no entry for them. Both are fixed in
+b233cd3; none is disputed.
+
+- Contract strength, E3-1: matching the NumPy module by suffix
+  (`kind.__module__.endswith("numpy")`) left the suite green, the other side of N19. Module
+  names such as `jax.numpy` or `mylib.numpy` are not NumPy, and the guide refuses only `bool`
+  and NumPy booleans. `tests/test_numpy.py` now also accepts types named `bool_` from
+  `mylib.numpy` and `bool` from `jax.numpy`, and the comment says neither a prefix nor a
+  suffix of the module name is enough.
+- Contract strength, E3-2: narrowing the optional `mmap` import on Python 3.10 and 3.11 from
+  `except ImportError` to `except ModuleNotFoundError` left the suite green, because the
+  existing test hides `mmap` with `sys.modules["mmap"] = None`, which raises
+  `ModuleNotFoundError`. The wider catch is kept on purpose: an `mmap` that exists but fails
+  to load must not stop `import crock`. The new
+  `test_hints::test_crock_imports_and_encodes_when_mmap_fails_to_load` puts a finder first
+  on `sys.meta_path` that raises a plain `ImportError` for `mmap`, then imports crock in a
+  subprocess and checks `encode(b"foobar") == "CSQPYRK1E8"`, that a `bytearray` matches the
+  hint, and that the finder was asked for `mmap` on 3.10 and 3.11 and not from 3.12. The
+  source comment now says why `ImportError` is caught rather than only
+  `ModuleNotFoundError`.
+
+Mutants for these findings, each applied alone to a copy of the source at b233cd3 and the
+named test file run with `-x` against it:
+
+| Id | Lens id | Mutation | Python | Killed by |
+| --- | --- | --- | --- | --- |
+| M67 | E3-1 | NumPy module matched by suffix | 3.12.12 (NumPy 1.26.4), 3.13.2 here, 3.14.2 (NumPy 2.5.4) | `test_numpy::test_numpy_integers_and_other_bool_named_types_are_accepted[mylib.numpy.bool_]` |
+| M68 | E3-2 | `mmap` import catches only `ModuleNotFoundError` | 3.10.19, 3.11.5, 3.11 here | `test_hints::test_crock_imports_and_encodes_when_mmap_fails_to_load` |
+
+M68 is equivalent from Python 3.12, where crock does not import `mmap`; the new test passes
+there with both versions of the code.
+
+Gates and matrix at b233cd3, on another machine from a fresh clone with the fetched sources
+and the Node.js references: CPython 3.14.2 with NumPy 2.5.4, `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `CROCK_E2E=1 pytest`
+(418 passed, nothing skipped) each exit 0. Wheel (11,334 bytes, sha256 aeea46cb...) and
+sdist (39,923 bytes, 2eeb32e8...) pass `twine check --strict`; the wheel holds the six
+modules, `py.typed`, METADATA, WHEEL, RECORD and `licenses/LICENSE`. The built wheel
+installed in a fresh venv per interpreter, running the sdist's suite with `src` removed:
+3.10.19 with NumPy 2.2.6 and 3.11.5 with NumPy 2.0.2, 408 passed and 3 skipped; 3.12.12
+with NumPy 1.26.4, 3.13.2 with NumPy 2.1.3 and 3.14.2 with NumPy 2.5.4, 409 passed and 2
+skipped; 3.14.2 free-threaded without NumPy, 403 passed and 2 skipped. Skipped: the two
 e2e tests (they ran with the gates), and on 3.10 and 3.11 the `collections.abc.Buffer`
 test, which needs 3.12.
 
