@@ -17,6 +17,7 @@ Progress:
 - [x] Gates (item 15), final run
 - [x] PR #3 and trace guard CLEAN; merge and publish left to the maintainer
 - [x] QA round 1 findings fixed (lenses c and e), gates, matrix and mutations rerun at b4f8a3c
+- [x] QA round 1 findings at be09246 fixed (lenses a, b, d and e) in 65861e0, gates, matrix and new mutants run
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -29,11 +30,11 @@ Progress:
 | 3 | Docstrings with runnable examples, doctests | PASS: every public name and the package docstring, 7 doctest items, README (4 blocks) and GUIDE (5 blocks) executed; the GUIDE shows each signature exactly as installed (pinned by a test) |
 | 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed`, typed consumer of the installed wheel; `typing.get_type_hints` resolves every public name at run time |
 | 5 | Typed, documented, bounded errors | PASS: `CrockfordError` (a `ValueError`, reported as `crock.CrockfordError`), `TypeError`, plain `ValueError` for options; messages name at most one symbol |
-| 6 | Contract tests of every public name | PASS: including NumPy booleans refused and non-ASCII lookalikes refused by every decoder, with and without `check` |
+| 6 | Contract tests of every public name | PASS: including NumPy booleans refused, NumPy integers accepted, the run-time buffer hint, full error messages, and non-ASCII lookalikes refused by every decoder, with and without `check` |
 | 7 | Real ground truth | PASS: 5 files fetched with a hash manifest, 3 independent implementations run |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built and inspected, wheel driven from an empty folder, typed consumer; no CLI; not on PyPI, so no upgrade |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.5, 3.12.12 (each with NumPy 1.26.4), 3.13.2, 3.14.2, 3.14.2 free-threaded |
+| 10 | Supported Pythons | PASS at 65861e0: CPython 3.10.19, 3.11.5, 3.12.12 (each with NumPy 1.26.4), 3.13.2, 3.14.2, 3.14.2 free-threaded |
 | 11 | README and `twine check` | PASS: `twine check --strict`, absolute links, problem, verified comparison, GUIDE and CHANGELOG links |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-22 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
@@ -41,7 +42,7 @@ Progress:
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent |
+| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent; the 8 survivors found by the contract-strength lens and 2 more, 10 mutants at 65861e0, all killed |
 | 19 | Five independent QA lenses | pending |
 
 ## Baseline on 0.2.0 (before any change)
@@ -209,6 +210,75 @@ Round 1 ran the five lenses at db158db. Findings fixed in b4f8a3c, each with a t
   the installed signatures, which a test compares.
 
 Both changes in behaviour are in the CHANGELOG.
+
+## QA round 1 findings at be09246 and fixes (item 19)
+
+The four lenses that did not yet pass reported these findings at be09246. Every one is fixed
+in 65861e0; none is disputed.
+
+- API and docs, A1: the README said every value has exactly one code, which is false for
+  integers (`width` writes leading zeros, `decode_int` reads them). The README now says a
+  byte string has exactly one code and integer codes differ only by leading zeros.
+- API and docs, A2: the `CrockfordError` docstring did not mention the negative integer
+  given to `encode_int`. It now does, with a doctest of that case.
+- Ground truth, F1: the docs named `crockford32` without saying that its bytes check symbol
+  (the value of the bytes mod 37) differs from crock's (the value of the symbols, padding
+  bits included). The README bullet and the guide now say so and explain the choice; the
+  guide's example (`b"H\t"`: `904GF` there, `904GJ` here, and crock refusing `904GF`) is
+  pinned by `test_check::test_the_bytes_check_counts_the_padding_bits`. The `crockford32`
+  side is the lens's measurement with crockford32 1.0.2 on Linux CPython 3.10.
+- Packaging and e2e, D1 (behaviour): on Python 3.10 and 3.11 the run-time annotation of
+  `encode`'s `data` refused `array.array` and `mmap.mmap`, which `encode` accepts. Contract
+  first: `tests/test_hints.py` failed on CPython 3.11.5 at be09246 for both types. The
+  stand-in now also registers `array.array` and `mmap.mmap`; the guide and the CHANGELOG
+  state that on 3.10 and 3.11 other buffers (a NumPy array, say) are encoded but refused by
+  a runtime type checker reading the annotation. The tests pass on 3.10.19 and 3.11.5.
+- Contract strength, F1: nothing pinned that NumPy integers are accepted. `tests/test_numpy.py`
+  (the NumPy boolean tests moved there from `test_types.py`) accepts stand-ins shaped like
+  `numpy.int64` and `numpy.uint8`, a type named `bool_` from another module, and the real
+  `numpy.int64`, `int32`, `uint16` and `uint64` when NumPy is installed, as `n`, `width`
+  and `group`.
+- Contract strength, F2: `normalize(..., check=True)` keeping leading zeros is pinned for
+  upper, lower, grouped and aliased spellings, with the length checked.
+- Contract strength, F3: group validation (`0`, negative, text) is pinned for empty data,
+  with and without `check`.
+- Contract strength, F4: on 3.12 and later the hint is asserted to be
+  `collections.abc.Buffer`.
+- Contract strength, F5: the full messages are now matched for a non-integer `n`, `width`
+  and `group`, a non-`str` text given to each decoder, and an impossible length (the real
+  symbol count, also with hyphens and with `check`).
+
+Mutants for these findings, each applied alone to a fresh clone at 65861e0 on another
+machine, the whole suite (fetched sources present) run with `-x`; the lens's mutants are
+renumbered.
+
+| Id | Lens id | Mutation | Python | Killed by |
+| --- | --- | --- | --- | --- |
+| M53 | M77 | every NumPy scalar refused as a bool | 3.14.2 | `test_numpy::test_numpy_integers_and_other_bool_named_types_are_accepted[numpy.int64]` |
+| M54 | M78 | any type named `bool_` refused, whatever its module | 3.14.2 | `test_numpy::test_numpy_integers_and_other_bool_named_types_are_accepted[mylib.bool_]` |
+| M55 | M96 | `normalize` with `check` drops leading zeros | 3.14.2 | `test_check::test_normalize_with_check_keeps_leading_zeros[0016JD]` |
+| M56 | M100 | `encode` skips group validation for empty data | 3.14.2 | `test_types::test_group_is_validated_even_for_empty_data` |
+| M57 | M82 | 3.12 uses the narrow stand-in | 3.12.12 | `test_hints::test_the_data_hint_is_the_standard_buffer_from_python_3_12` |
+| M58 | M91 | integer `TypeError` drops the type name | 3.14.2 | `test_types::test_encode_int_refuses_bool_float_and_text` |
+| M59 | M93 | impossible length reported mod 8 | 3.14.2 | `test_bytes::test_lengths_no_byte_string_encodes_to_are_rejected[9]` |
+| M60 | M94 | non-`str` `TypeError` drops the type name | 3.14.2 | `test_types::test_decoders_refuse_non_str` |
+| M61 | (D1) | stand-in forgets `array.array` and `mmap.mmap` | 3.10.19, 3.11.5 | `test_hints::test_every_standard_buffer_is_an_instance_of_the_hint[array]` |
+| M62 | (M44) | stand-in registers nothing | 3.10.19 | `test_contract::test_annotations_resolve_at_run_time[encode]` |
+
+Gates and matrix at 65861e0, on another machine from a fresh clone with the fetched
+sources: CPython 3.14.2 with NumPy 2.5.4, `ruff format --check .`, `ruff check .`,
+`mypy --strict src`, `mypy --strict src tests` and `CROCK_E2E=1 pytest` each exit 0, nothing
+skipped. Wheel (11,057 bytes, sha256 246e0835...) and sdist (38,931 bytes, 3bfb6fa5...)
+pass `twine check --strict`; the wheel holds the six modules, `py.typed`, METADATA, WHEEL,
+RECORD and `licenses/LICENSE`. The built wheel installed in a fresh venv per interpreter,
+running the sdist's suite with `src` removed: 3.10.19 and 3.11.5 with NumPy 1.26.4, 399
+passed; 3.12.12 with NumPy 1.26.4, 400 passed; 3.13.2, 3.14.2 and 3.14.2 free-threaded,
+394 passed. Skipped everywhere: the two e2e tests (they ran with the gates), and on 3.10 and
+3.11 the `collections.abc.Buffer` test, which needs 3.12.
+
+## Disputed findings
+
+None.
 
 ## Packaging, e2e and Pythons (items 8, 10, 13, 14)
 
