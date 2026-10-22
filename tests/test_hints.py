@@ -65,3 +65,36 @@ def test_crock_imports_and_encodes_without_mmap() -> None:
     )
     assert done.returncode == 0, done.stderr
     assert done.stdout.split() == ["CSQPYRK1E8", "True", "True"]
+
+
+# A finder that makes the mmap module present but failing to load, as a broken extension
+# module does. It only raises where crock imports mmap (Python 3.10 and 3.11).
+FAILING_MMAP = """
+import sys, typing
+sys.path.insert(0, sys.argv[1])
+asked = []
+class Broken:
+    def find_spec(self, name, path=None, target=None):
+        if name == "mmap":
+            asked.append(name)
+            raise ImportError("DLL load failed while importing mmap")
+        return None
+sys.modules.pop("mmap", None)
+sys.meta_path.insert(0, Broken())
+import crock
+hint = typing.get_type_hints(crock.encode)["data"]
+print(crock.encode(b"foobar"), isinstance(bytearray(), hint), bool(asked))
+"""
+
+
+def test_crock_imports_and_encodes_when_mmap_fails_to_load() -> None:
+    root = str(Path(crock.__file__).parent.parent)
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", FAILING_MMAP, root],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert done.returncode == 0, done.stderr
+    tried = "True" if sys.version_info < (3, 12) else "False"
+    assert done.stdout.split() == ["CSQPYRK1E8", "True", tried]

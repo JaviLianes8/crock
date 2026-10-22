@@ -58,9 +58,12 @@ def integer_types() -> list[Make]:
         shaped("numpy", "uint8"),
         shaped("mylib", "bool_"),
         shaped("mylib", "bool"),
-        # Only the numpy module itself is NumPy: a prefix of the name is not enough.
+        # Only the numpy module itself is NumPy: neither a prefix nor a suffix of the name
+        # is enough.
         shaped("numpyro", "bool_"),
         shaped("numpy_ext", "bool"),
+        shaped("mylib.numpy", "bool_"),
+        shaped("jax.numpy", "bool"),
     ]
     numpy = numpy_module()
     if numpy is None:

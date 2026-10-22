@@ -19,9 +19,11 @@ elif TYPE_CHECKING:
 else:
     import array
 
+    # WASI and Emscripten builds have no mmap module. Any ImportError is caught, not only
+    # ModuleNotFoundError, so that an mmap that exists but fails to load cannot stop the import.
     try:
         import mmap
-    except ImportError:  # WASI and Emscripten builds have no mmap module
+    except ImportError:
         mmap = None
 
     # Like the typing_extensions stand-in, without the dependency. Python 3.10 and 3.11
