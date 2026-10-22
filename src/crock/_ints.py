@@ -10,11 +10,15 @@ from ._errors import CrockfordError
 
 # Python's own base 32 digits, so ``int(text, 32)`` does the work after validation.
 _TO_PYTHON = bytes.maketrans(ENCODE.encode("ascii"), b"0123456789abcdefghijklmnopqrstuv")
+_NUMPY_BOOLS = ("bool_", "bool")
 
 
 def as_int(n: object, name: str = "n") -> int:
     """Accept anything with ``__index__`` except ``bool``; refuse the rest with ``TypeError``."""
-    if isinstance(n, bool):
+    kind = type(n)
+    # NumPy booleans are not bool subclasses, yet up to NumPy 2.2 they have __index__. The
+    # type is named bool_ in NumPy 1.x and bool from NumPy 2.0.
+    if isinstance(n, bool) or (kind.__module__ == "numpy" and kind.__name__ in _NUMPY_BOOLS):
         raise TypeError(f"{name} must be an integer, not bool")
     try:
         return operator.index(n)  # type: ignore[arg-type]

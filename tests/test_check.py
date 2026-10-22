@@ -132,6 +132,20 @@ def test_normalize_with_check_verifies_and_canonicalizes() -> None:
         normalize("16JE", check=True)
 
 
+@pytest.mark.parametrize("text", ["0016JD", "0016jd", "00-16-JD", "oo16j-d", "-0016JD-"])
+def test_normalize_with_check_keeps_leading_zeros(text: str) -> None:
+    result = normalize(text, check=True)
+    assert result == "0016JD"
+    assert len(result) == len(text.replace("-", ""))
+
+
+def test_the_bytes_check_counts_the_padding_bits() -> None:
+    # The guide's example against crockford32, which checks the value of the bytes alone.
+    assert encode(b"H\t", check=True) == "904GJ"
+    with pytest.raises(CrockfordError, match=r"^check symbol does not match$"):
+        decode("904GF", check=True)
+
+
 def test_normalize_canonicalizes_an_alias_in_the_check_position() -> None:
     assert normalize("15o", check=True) == "150"
     assert normalize("1-I", check=True) == "11"
