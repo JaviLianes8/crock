@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import abc
 import sys
 from typing import TYPE_CHECKING, SupportsIndex
 
@@ -9,12 +10,21 @@ from ._alphabet import canonical, check_symbol, require_str, split_check, verify
 from ._bytes import as_bytes, check_value, decode_bytes, encode_bytes
 from ._ints import as_int, decode_number, encode_number
 
-if TYPE_CHECKING:
-    # Any object with the buffer protocol; the annotation costs nothing at run time.
-    if sys.version_info >= (3, 12):
-        from collections.abc import Buffer
-    else:
-        from typing_extensions import Buffer
+# Any object with the buffer protocol. The name must also exist at run time, because tools
+# such as validators and documentation generators evaluate the annotations.
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer
+elif TYPE_CHECKING:
+    from typing_extensions import Buffer
+else:
+    # The typing_extensions stand-in, without the dependency; it has no abstract methods.
+    class Buffer(abc.ABC):  # noqa: B024
+        """Objects that support the buffer protocol."""
+
+        __slots__ = ()
+
+    for _kind in (bytes, bytearray, memoryview):
+        Buffer.register(_kind)
 
 
 def encode(data: Buffer, /, *, check: bool = False, group: SupportsIndex | None = None) -> str:

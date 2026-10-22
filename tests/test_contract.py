@@ -7,6 +7,7 @@ import importlib.resources
 import inspect
 import pickle
 import sys
+import typing
 
 import pytest
 
@@ -56,6 +57,17 @@ def test_the_package_ships_type_information() -> None:
 @pytest.mark.parametrize("name", sorted(SIGNATURES))
 def test_function_signatures_are_pinned(name: str) -> None:
     assert str(inspect.signature(getattr(crock, name))) == SIGNATURES[name]
+
+
+@pytest.mark.parametrize("name", PUBLIC_API)
+def test_annotations_resolve_at_run_time(name: str) -> None:
+    # Validators, documentation tools and runtime type checkers evaluate the annotations.
+    hints = typing.get_type_hints(getattr(crock, name))
+    if name in SIGNATURES:
+        inspect.signature(getattr(crock, name), eval_str=True)
+    if name == "encode":
+        for data in (b"x", bytearray(b"x"), memoryview(b"x")):
+            assert isinstance(data, hints["data"])
 
 
 @pytest.mark.parametrize("name", sorted(SIGNATURES))

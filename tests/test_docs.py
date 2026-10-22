@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import re
 from pathlib import Path
 
@@ -50,6 +51,17 @@ def test_every_public_name_appears_in_the_readme_and_the_guide() -> None:
     for name in crock.__all__:
         assert f"`{name}`" in _text("README.md"), name
         assert f"`{name}" in _text("GUIDE.md"), name
+
+
+def _plain_signature(name: str) -> str:
+    signature = inspect.signature(getattr(crock, name))
+    bare = [param.replace(annotation=param.empty) for param in signature.parameters.values()]
+    return str(signature.replace(parameters=bare, return_annotation=signature.empty))
+
+
+@pytest.mark.parametrize("name", [name for name in crock.__all__ if name != "CrockfordError"])
+def test_the_guide_shows_each_signature_as_installed(name: str) -> None:
+    assert f"`{name}{_plain_signature(name)}`" in _text("GUIDE.md"), _plain_signature(name)
 
 
 def test_links_in_the_readme_are_absolute() -> None:

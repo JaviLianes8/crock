@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import array
+import importlib
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -70,6 +72,43 @@ def test_encode_int_accepts_index_objects() -> None:
 def test_encode_int_refuses_bool_float_and_text(n: Any) -> None:
     with pytest.raises(TypeError):
         encode_int(n)
+
+
+class NumpyOneBool:
+    """Shaped like NumPy 1.x ``numpy.bool_``: not a ``bool`` subclass, yet has ``__index__``."""
+
+    __module__ = "numpy"
+
+    def __init__(self, value: bool) -> None:
+        self.value = value
+
+    def __index__(self) -> int:
+        return int(self.value)
+
+
+NumpyOneBool.__name__ = NumpyOneBool.__qualname__ = "bool_"
+
+
+def _numpy_bools() -> list[Any]:
+    found: list[Any] = [NumpyOneBool(True), NumpyOneBool(False)]
+    try:
+        numpy = importlib.import_module("numpy")
+    except ImportError:
+        return found
+    return [*found, numpy.True_, numpy.False_]
+
+
+@pytest.mark.parametrize("value", _numpy_bools())
+def test_numpy_booleans_are_refused_like_bool(value: Any) -> None:
+    calls: list[Callable[[], object]] = [
+        lambda: encode_int(value),
+        lambda: encode_int(value, check=True),
+        lambda: encode_int(5, width=value),
+        lambda: encode(b"abc", group=value),
+    ]
+    for call in calls:
+        with pytest.raises(TypeError, match=r"must be an integer, not bool$"):
+            call()
 
 
 @pytest.mark.parametrize("option", ["width", "group"])

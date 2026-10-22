@@ -25,6 +25,11 @@ listed in the guide. Changes after 1.0.0 follow Semantic Versioning.
   `OverflowError`.
 - `CrockfordError` reports, prints and pickles as `crock.CrockfordError`.
 - The package no longer exposes a stray `annotations` name.
+- NumPy booleans are refused as an integer, `width` or `group` with the same `TypeError` as
+  `bool`; under NumPy 1.x `numpy.bool_` was accepted as 0 or 1.
+- The annotations of every public function resolve at run time
+  (`typing.get_type_hints(crock.encode)` used to raise `NameError`), so runtime validators
+  and documentation tools can read them.
 
 ### Added
 

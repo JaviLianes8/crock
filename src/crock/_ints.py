@@ -14,7 +14,9 @@ _TO_PYTHON = bytes.maketrans(ENCODE.encode("ascii"), b"0123456789abcdefghijklmno
 
 def as_int(n: object, name: str = "n") -> int:
     """Accept anything with ``__index__`` except ``bool``; refuse the rest with ``TypeError``."""
-    if isinstance(n, bool):
+    kind = type(n)
+    # NumPy 1.x booleans are not bool subclasses but have __index__; NumPy 2 dropped it.
+    if isinstance(n, bool) or (kind.__module__ == "numpy" and kind.__name__ == "bool_"):
         raise TypeError(f"{name} must be an integer, not bool")
     try:
         return operator.index(n)  # type: ignore[arg-type]

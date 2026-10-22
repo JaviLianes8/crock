@@ -27,14 +27,14 @@ Whitespace is never stripped: trim user input yourself if your forms allow it.
 
 ## Integers
 
-`encode_int(n, *, check=False, width=None, group=None)` writes a non-negative integer with
+`encode_int(n, /, *, check=False, width=None, group=None)` writes a non-negative integer with
 the most significant symbol first. The number is zero-extended on the left to a multiple of
 5 bits, so there are no leading zeros unless `width` asks for them. `width` pads with `0` to
 at least that many symbols and never truncates. `n` may be any object with `__index__`
-(NumPy integers included) but not `bool` or `float`. A negative `n` raises
+(NumPy integers included) but not `bool` (NumPy booleans included) or `float`. A negative `n` raises
 `CrockfordError`.
 
-`decode_int(text, *, check=False)` reads leading zeros as zero, so `"00016J"` and `"16J"`
+`decode_int(text, /, *, check=False)` reads leading zeros as zero, so `"00016J"` and `"16J"`
 are the same number. An empty string (or one made only of hyphens) raises `CrockfordError`.
 
 ```python
@@ -51,12 +51,12 @@ the 48 bit millisecond time.
 
 ## Bytes
 
-`encode(data, *, check=False, group=None)` reads `data` (any bytes-like object) as one
+`encode(data, /, *, check=False, group=None)` reads `data` (any bytes-like object) as one
 big-endian bit string and zero-extends it on the right to a multiple of 5 bits: the bit
 order of RFC 4648 base32, without the `=` padding. Leading zero bytes are therefore kept,
 and `n` bytes always give `ceil(8 * n / 5)` symbols.
 
-`decode(text, *, check=False)` is strict. A symbol count that no byte string encodes to
+`decode(text, /, *, check=False)` is strict. A symbol count that no byte string encodes to
 (1, 3 or 6 more than a multiple of 8), or a last symbol whose padding bits are not zero, is
 refused. Every byte string has exactly one code, up to case, aliases and hyphens.
 
@@ -102,7 +102,7 @@ bytes). `width` never counts the check symbol; `group` does.
 ## Groups and normalize
 
 `group=n` inserts a hyphen every `n` symbols, counted from the left, check symbol included.
-`normalize(text, *, check=False)` returns the canonical spelling: upper case, aliases
+`normalize(text, /, *, check=False)` returns the canonical spelling: upper case, aliases
 resolved, hyphens removed, and with `check=True` the check symbol verified and written in
 its canonical form. Two codes for the same value normalize to the same string only if they
 have the same length (leading zeros are kept).
@@ -121,7 +121,7 @@ print(crock.normalize("15o", check=True))  # 150
 | Situation | Exception |
 | --- | --- |
 | Invalid symbol, impossible length, non-zero pad bits, missing or wrong check symbol, empty integer code, negative integer | `CrockfordError` (a `ValueError`) |
-| `str` given to `encode`, non-`str` given to a decoder, `bool`, `float` or text as an integer, width or group | `TypeError` |
+| `str` given to `encode`, non-`str` given to a decoder, `bool` (NumPy booleans too), `float` or text as an integer, width or group | `TypeError` |
 | Negative `width`, `width` larger than `sys.maxsize`, `group` below 1 | plain `ValueError` |
 
 Messages name the problem and at most one offending symbol, never the whole input. The
