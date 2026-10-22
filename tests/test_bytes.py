@@ -43,8 +43,11 @@ def test_output_is_upper_case_canonical_symbols_only() -> None:
 
 @pytest.mark.parametrize("length", [1, 3, 6, 9, 11, 14])
 def test_lengths_no_byte_string_encodes_to_are_rejected(length: int) -> None:
-    with pytest.raises(CrockfordError, match="whole number of bytes"):
+    message = f"^a length of {length} cannot encode a whole number of bytes$"
+    with pytest.raises(CrockfordError, match=message):
         decode("0" * length)
+    with pytest.raises(CrockfordError, match=message):
+        decode("-".join("0" * length) + "-")
 
 
 @pytest.mark.parametrize("length", [2, 4, 5, 7])
@@ -57,6 +60,13 @@ def test_every_last_symbol_with_non_zero_pad_bits_is_rejected(length: int) -> No
                 decode(text)
         else:
             assert encode(decode(text)) == text
+
+
+def test_the_length_message_names_the_real_symbol_count() -> None:
+    with pytest.raises(CrockfordError, match=r"^a length of 9 cannot encode"):
+        decode("CSQPYRK1E")
+    with pytest.raises(CrockfordError, match=r"^a length of 9 cannot encode"):
+        decode("CSQPYRK1E0", check=True)
 
 
 def test_only_one_code_per_value() -> None:

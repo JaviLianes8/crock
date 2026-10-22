@@ -15,7 +15,9 @@ check symbol catches a mistyped symbol or two swapped neighbours before the code
 your database.
 
 `crock` implements the whole scheme for integers and for arbitrary bytes, strictly: every
-value has exactly one code, and anything else is refused with a clear error.
+byte string has exactly one code (up to case, aliases and hyphens), integer codes differ
+only by leading zeros, which decode as zero, and anything else is refused with a clear
+error.
 
 ## Install
 
@@ -89,7 +91,9 @@ These are the other Crockford base32 packages on PyPI, as published on 2026-10-2
   output, and a two digit ISO 7064 checksum instead of Crockford's check symbol.
 - [`crockford32`](https://pypi.org/project/crockford32/) 1.0.2: a compiled extension
   published only as a Linux x86-64 wheel for CPython 3.10, and its decoder does not apply
-  the I, L and O conversions.
+  the I, L and O conversions. Its check symbol for bytes is the value of the bytes mod 37,
+  where `crock` uses the value of the symbols (padding bits included), so the two write
+  different check symbols for most byte strings; the guide explains the choice.
 - [`python-ulid`](https://pypi.org/project/python-ulid/): Crockford base32 for 16 byte
   ULIDs only.
 

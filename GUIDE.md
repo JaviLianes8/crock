@@ -94,6 +94,12 @@ print(crock.encode(b"hi", check=True))  # D1MGJ
 print(crock.decode_int("D1MGJ", check=True) == crock.decode_int("D1MG"))  # True
 ```
 
+The specification defines the check symbol for numbers only, so the bytes rule is a choice,
+made so that one rule covers both kinds of code. Other packages choose differently:
+`crockford32` uses the value of the bytes, without the padding bits. Its check symbols for
+bytes are therefore not interchangeable with those of `crock`: for `b"H\t"` it writes
+`904GF` where `crock` writes `904GJ`, and `crock` refuses `904GF`.
+
 The check catches every single wrong symbol and every swap of two neighbouring symbols. It
 does not catch an inserted or a dropped symbol, and a leading `0` adds nothing to the
 value, so dropping it still passes the check (and, for a bytes code, can decode to other
@@ -127,6 +133,13 @@ print(crock.normalize("15o", check=True))  # 150
 Messages name the problem and at most one offending symbol, never the whole input. The
 first argument of every function is positional-only and the options are keyword-only.
 The package ships `py.typed`; results are typed `str`, `bytes` and `int`.
+
+The annotations also resolve at run time, for validators and documentation tools. On
+Python 3.12 and later `data` is annotated with `collections.abc.Buffer`, which every buffer
+matches. Python 3.10 and 3.11 have no such type, so there it is a stand-in that matches
+`bytes`, `bytearray`, `memoryview`, `array.array` and `mmap.mmap` only: `encode` still
+accepts any other buffer, such as a NumPy array, but a runtime type checker that reads the
+annotation refuses it.
 
 ## Size and speed
 

@@ -17,13 +17,18 @@ if sys.version_info >= (3, 12):
 elif TYPE_CHECKING:
     from typing_extensions import Buffer
 else:
-    # The typing_extensions stand-in, without the dependency; it has no abstract methods.
+    import array
+    import mmap
+
+    # Like the typing_extensions stand-in, without the dependency. Python 3.10 and 3.11
+    # cannot ask a class for the buffer protocol, so the standard library buffers are
+    # registered by name; encode itself accepts every buffer.
     class Buffer(abc.ABC):  # noqa: B024
         """Objects that support the buffer protocol."""
 
         __slots__ = ()
 
-    for _kind in (bytes, bytearray, memoryview):
+    for _kind in (bytes, bytearray, memoryview, array.array, mmap.mmap):
         Buffer.register(_kind)
 
 

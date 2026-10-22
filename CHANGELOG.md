@@ -29,7 +29,10 @@ listed in the guide. Changes after 1.0.0 follow Semantic Versioning.
   `bool`; under NumPy 1.x `numpy.bool_` was accepted as 0 or 1.
 - The annotations of every public function resolve at run time
   (`typing.get_type_hints(crock.encode)` used to raise `NameError`), so runtime validators
-  and documentation tools can read them.
+  and documentation tools can read them. On Python 3.12 and later `data` is annotated with
+  `collections.abc.Buffer`; on 3.10 and 3.11 the annotation is a stand-in that matches
+  `bytes`, `bytearray`, `memoryview`, `array.array` and `mmap.mmap` only, so a runtime type
+  checker there refuses other buffers that `encode` accepts (the guide has the details).
 
 ### Added
 

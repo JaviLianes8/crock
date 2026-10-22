@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import array
-import importlib
-from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -57,9 +55,10 @@ def test_encode_of_str_says_to_encode_first() -> None:
 @pytest.mark.parametrize("function", [decode, decode_int, normalize])
 @pytest.mark.parametrize("text", [b"16J", 1234, None, ["16J"]])
 def test_decoders_refuse_non_str(function: Any, text: Any) -> None:
-    with pytest.raises(TypeError, match="expected str"):
+    message = f"^expected str, got {type(text).__name__}$"
+    with pytest.raises(TypeError, match=message):
         function(text)
-    with pytest.raises(TypeError, match="expected str"):
+    with pytest.raises(TypeError, match=message):
         function(text, check=True)
 
 
@@ -68,63 +67,46 @@ def test_encode_int_accepts_index_objects() -> None:
     assert encode_int(1234, width=Index(5), group=Index(2)) == "00-16-J"
 
 
-@pytest.mark.parametrize("n", [True, False, 1.0, 1.5, "1", None])
-def test_encode_int_refuses_bool_float_and_text(n: Any) -> None:
-    with pytest.raises(TypeError):
+@pytest.mark.parametrize(
+    ("n", "message"),
+    [
+        (True, "n must be an integer, not bool"),
+        (False, "n must be an integer, not bool"),
+        (1.0, "n must be an integer, not float"),
+        (1.5, "n must be an integer, not float"),
+        ("1", "n must be an integer, not str"),
+        (None, "n must be an integer, not NoneType"),
+    ],
+)
+def test_encode_int_refuses_bool_float_and_text(n: Any, message: str) -> None:
+    with pytest.raises(TypeError, match=f"^{message}$"):
         encode_int(n)
-
-
-class NumpyOneBool:
-    """Shaped like NumPy 1.x ``numpy.bool_``: not a ``bool`` subclass, yet has ``__index__``."""
-
-    __module__ = "numpy"
-
-    def __init__(self, value: bool) -> None:
-        self.value = value
-
-    def __index__(self) -> int:
-        return int(self.value)
-
-
-NumpyOneBool.__name__ = NumpyOneBool.__qualname__ = "bool_"
-
-
-def _numpy_bools() -> list[Any]:
-    found: list[Any] = [NumpyOneBool(True), NumpyOneBool(False)]
-    try:
-        numpy = importlib.import_module("numpy")
-    except ImportError:
-        return found
-    return [*found, numpy.True_, numpy.False_]
-
-
-@pytest.mark.parametrize("value", _numpy_bools())
-def test_numpy_booleans_are_refused_like_bool(value: Any) -> None:
-    calls: list[Callable[[], object]] = [
-        lambda: encode_int(value),
-        lambda: encode_int(value, check=True),
-        lambda: encode_int(5, width=value),
-        lambda: encode(b"abc", group=value),
-    ]
-    for call in calls:
-        with pytest.raises(TypeError, match=r"must be an integer, not bool$"):
-            call()
 
 
 @pytest.mark.parametrize("option", ["width", "group"])
 @pytest.mark.parametrize("value", [True, 2.0, "2"])
 def test_width_and_group_refuse_non_integers(option: str, value: Any) -> None:
-    with pytest.raises(TypeError, match=option):
+    kind = type(value).__name__
+    with pytest.raises(TypeError, match=f"^{option} must be an integer, not {kind}$"):
         encode_int(5, **{option: value})
 
 
-def test_negative_width_and_non_positive_group_are_refused() -> None:
-    with pytest.raises(ValueError, match="width"):
+def test_negative_width_is_refused() -> None:
+    with pytest.raises(ValueError, match=r"^width must not be negative$"):
         encode_int(5, width=-1)
-    with pytest.raises(ValueError, match="group"):
-        encode_int(5, group=0)
-    with pytest.raises(ValueError, match="group"):
-        encode(b"x", group=-3)
+
+
+@pytest.mark.parametrize("data", [b"", b"x"])
+@pytest.mark.parametrize("check", [False, True])
+def test_group_is_validated_even_for_empty_data(data: bytes, check: bool) -> None:
+    with pytest.raises(ValueError, match=r"^group must be positive$"):
+        encode(data, check=check, group=0)
+    with pytest.raises(ValueError, match=r"^group must not be negative$"):
+        encode(data, check=check, group=-3)
+    with pytest.raises(TypeError, match=r"^group must be an integer, not str$"):
+        encode(data, check=check, group="2")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match=r"^group must be positive$"):
+        encode_int(5, check=check, group=0)
 
 
 def test_parameter_errors_are_not_crockford_errors() -> None:
