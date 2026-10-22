@@ -18,6 +18,7 @@ Progress:
 - [x] PR #3 and trace guard CLEAN; merge and publish left to the maintainer
 - [x] QA round 1 findings fixed (lenses c and e), gates, matrix and mutations rerun at b4f8a3c
 - [x] QA round 1 findings at be09246 fixed (lenses a, b, d and e) in 65861e0, gates, matrix and new mutants run
+- [x] QA round 2 findings at 770baf0 fixed (lenses b, d and e) in 4ff61a5, gates, matrix with five NumPy versions, WASI and new mutants run
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -34,7 +35,7 @@ Progress:
 | 7 | Real ground truth | PASS: 5 files fetched with a hash manifest, 3 independent implementations run |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built and inspected, wheel driven from an empty folder, typed consumer; no CLI; not on PyPI, so no upgrade |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS at 65861e0: CPython 3.10.19, 3.11.5, 3.12.12 (each with NumPy 1.26.4), 3.13.2, 3.14.2, 3.14.2 free-threaded |
+| 10 | Supported Pythons | PASS at 4ff61a5: CPython 3.10.19 (NumPy 2.2.6), 3.11.5 (NumPy 2.0.2), 3.12.12 (NumPy 1.26.4), 3.13.2 (NumPy 2.1.3), 3.14.2 (NumPy 2.5.4), 3.14.2 free-threaded (no NumPy); import also checked on WASI CPython 3.11.13 and 3.13.11 |
 | 11 | README and `twine check` | PASS: `twine check --strict`, absolute links, problem, verified comparison, GUIDE and CHANGELOG links |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-22 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
@@ -42,7 +43,7 @@ Progress:
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent; the 8 survivors found by the contract-strength lens and 2 more, 10 mutants at 65861e0, all killed |
+| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent; the 8 survivors found by the contract-strength lens and 2 more, 10 mutants at 65861e0, all killed; 4 more at 4ff61a5, all killed |
 | 19 | Five independent QA lenses | pending |
 
 ## Baseline on 0.2.0 (before any change)
@@ -275,6 +276,64 @@ running the sdist's suite with `src` removed: 3.10.19 and 3.11.5 with NumPy 1.26
 passed; 3.12.12 with NumPy 1.26.4, 400 passed; 3.13.2, 3.14.2 and 3.14.2 free-threaded,
 394 passed. Skipped everywhere: the two e2e tests (they ran with the gates), and on 3.10 and
 3.11 the `collections.abc.Buffer` test, which needs 3.12.
+
+## QA round 2 findings at 770baf0 and fixes (item 19)
+
+Lenses b, d and e reported these findings at 770baf0. Every one is fixed in 4ff61a5; none
+is disputed. Lens d confirmed D1 fixed and everything else in its lens passing.
+
+- Ground truth, N1 (behaviour): with NumPy 2.0, 2.1 and 2.2 the boolean type is named
+  `numpy.bool` (not `bool_`) and still has `__index__` (deprecated), so `encode_int(np.True_)`
+  returned `'1'` and `width` and `group` took it as 1. Reproduced here with NumPy 2.2.6;
+  NumPy 2.3.5 has no `__index__` on it. Contract first: a stand-in named `bool` from module
+  `numpy` in `tests/test_numpy.py` failed at 770baf0. Both names are now refused, the source
+  comment says which NumPy versions need it, and the CHANGELOG entry says up to NumPy 2.2.
+  The matrix now runs the NumPy tests against NumPy 1.26.4, 2.0.2, 2.1.3, 2.2.6 and 2.5.4.
+- Ground truth, N2 (docs): the README and the guide described the `crockford32` bytes check
+  as the value of the bytes mod 37, which holds only for ASCII bytes; for bytes of 0x80 and
+  above `crockford32` 1.0.2 writes a body that is not the specification's. Reproduced on
+  Linux CPython 3.10.18 with `crockford32` 1.0.2 (seed 310, 20,000 inputs per row): bytes
+  0x00 to 0x7F match the specification body and that rule on 20,000 of 20,000; bytes 0x00 to
+  0xFF on 857 and 1,360. `b"{\xd5\xd4~"` gives `FC000ZGR` there and `FFAX8ZG6` here. Both
+  sentences now say ASCII bytes, and the README bullet states the high byte example. This
+  also corrects the round 1 F1 entry above, which said the same without the limit.
+- Packaging and e2e, D2 (behaviour, a regression of the D1 fix): on Python 3.10 and 3.11
+  `_codec.py` imported `mmap` unconditionally, so `import crock` failed on builds without
+  it (WASI, Emscripten). Contract first: `test_hints::test_crock_imports_and_encodes_without_mmap`
+  imports the package in a subprocess with `sys.modules["mmap"] = None` and failed on
+  CPython 3.11 at 770baf0. The import is now optional and `mmap.mmap` is registered only
+  when present; the guide and the CHANGELOG say "`mmap.mmap` (where available)", and the
+  source comment says the common standard library buffers. Checked for real with wasmtime
+  50.0.0 and the WASI builds lens d kept: CPython 3.11.13 and 3.13.11 import crock at
+  4ff61a5, `encode(b"foobar")` is `CSQPYRK1E8` and a `bytearray` matches the hint. No
+  CHANGELOG entry for the import itself: 0.2.0 imported there, so against 0.2.0 nothing
+  changed.
+- Contract strength, N19: changing the NumPy module test to a prefix match
+  (`startswith("numpy")`) left the suite green. `tests/test_numpy.py` now accepts types
+  named `bool_` and `bool` from `numpyro`, `numpy_ext` and `mylib`.
+
+Mutants for these findings, each applied alone to the working tree at 4ff61a5 and the
+named test file run with `-x`:
+
+| Id | Lens id | Mutation | Python | Killed by |
+| --- | --- | --- | --- | --- |
+| M63 | N19 | NumPy module matched by prefix | 3.13.2 | `test_numpy::test_numpy_integers_and_other_bool_named_types_are_accepted[numpyro.bool_]` |
+| M64 | N1 | only `bool_` refused (the code at 770baf0) | 3.13.2 | `test_numpy::test_numpy_booleans_are_refused_like_bool` (the `numpy.bool` stand-in) |
+| M65 | D2 | `mmap` imported unconditionally (the code at 770baf0) | 3.11 | `test_hints::test_crock_imports_and_encodes_without_mmap` |
+| M66 | D2 | `mmap.mmap` no longer registered when present | 3.11 | `test_hints::test_a_memory_map_is_an_instance_of_the_hint` |
+
+Gates and matrix at 4ff61a5, on another machine from a fresh clone with the fetched sources
+and the Node.js references: CPython 3.14.2 with NumPy 2.5.4, `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `CROCK_E2E=1 pytest`
+(415 passed, nothing skipped) each exit 0. Wheel (11,276 bytes, sha256 2bc3c03a...) and
+sdist (39,536 bytes, 0ad1caff...) pass `twine check --strict`; the wheel holds the six
+modules, `py.typed`, METADATA, WHEEL, RECORD and `licenses/LICENSE`. The built wheel
+installed in a fresh venv per interpreter, running the sdist's suite with `src` removed:
+3.10.19 with NumPy 2.2.6 and 3.11.5 with NumPy 2.0.2, 405 passed and 3 skipped; 3.12.12
+with NumPy 1.26.4, 3.13.2 with NumPy 2.1.3 and 3.14.2 with NumPy 2.5.4, 406 passed and 2
+skipped; 3.14.2 free-threaded without NumPy, 400 passed and 2 skipped. Skipped: the two
+e2e tests (they ran with the gates), and on 3.10 and 3.11 the `collections.abc.Buffer`
+test, which needs 3.12.
 
 ## Disputed findings
 
