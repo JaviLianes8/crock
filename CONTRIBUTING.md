@@ -8,6 +8,13 @@ Thanks for taking the time. This project keeps a small, predictable shape.
 pip install -r requirements-dev.txt
 ```
 
+Once, fetch the third-party files the specification and reference tests read (they are
+not committed; the tests skip without them):
+
+```
+python scripts/fetch_upstream.py
+```
+
 ## Before you open a pull request
 
 - Keep public API in `src/crock/__init__.py`; internals live in `_`-prefixed modules.

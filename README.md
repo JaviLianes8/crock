@@ -1,12 +1,21 @@
 # crock
 
+[![Lianes8 Certified](https://lianes8studio.com/certified/lianes8-certified-badge.svg)](https://lianes8studio.com/certified)
+
 Typed Crockford base32 for bytes and ints, with normalization and an optional check symbol.
 
-[Crockford's base32](https://www.crockford.com/base32.html) spells numbers with 32 symbols
-that people can read aloud and type back: digits and upper-case letters without I, L, O and
-U. Decoding forgives case, reads I and L as 1 and O as 0, and ignores hyphens. An optional
-check symbol catches a mistyped symbol or two swapped neighbours before they reach your
-database.
+## The problem
+
+Order numbers, invite codes, licence keys and short IDs get read aloud, copied by hand and
+typed back. Decimal is long, hexadecimal is not much shorter, and base64 mixes cases and
+punctuation. [Crockford's base32](https://www.crockford.com/base32.html) spells numbers
+with 32 symbols chosen for people: digits and upper-case letters without I, L, O and U.
+Decoding forgives case, reads I and L as 1 and O as 0, and ignores hyphens, and an optional
+check symbol catches a mistyped symbol or two swapped neighbours before the code reaches
+your database.
+
+`crock` implements the whole scheme for integers and for arbitrary bytes, strictly: every
+value has exactly one code, and anything else is refused with a clear error.
 
 ## Install
 
@@ -16,7 +25,7 @@ pip install crock
 
 Python 3.10 or newer, no dependencies.
 
-## Usage
+## Quick start
 
 Integers, for IDs, order numbers and short codes:
 
@@ -63,43 +72,39 @@ print(crock.normalize("ix-Lb-Ko"))  # 1X1BK0
 print(crock.normalize("16j-d", check=True))  # 16JD
 ```
 
-## The rules
+The public API is six names: `encode`, `decode`, `encode_int`, `decode_int`, `normalize`
+and `CrockfordError` (a `ValueError`). The [guide](https://github.com/JaviLianes8/crock/blob/main/GUIDE.md)
+has the exact rules for each.
 
-- `encode` and `encode_int` write upper-case canonical symbols only. `decode`,
-  `decode_int` and `normalize` accept both cases, the aliases `I`, `i`, `L`, `l` (1) and
-  `O`, `o` (0), and hyphens anywhere. Anything else, including spaces and `U` outside the
-  check position, raises `CrockfordError`, which is a `ValueError`.
-- An integer is zero-extended on the left, so `encode_int` never writes leading zeros unless
-  you ask for a `width`, and `decode_int` reads leading zeros as zero. `encode_int` takes any
-  non-negative integer, including objects with `__index__` such as NumPy integers, but not
-  `bool` or `float`.
-- Bytes are a big-endian bit string zero-extended on the right, the bit order of RFC 4648
-  base32 without the `=` padding. `decode` is strict: a length that no byte string encodes
-  to, or a last symbol with non-zero pad bits, is rejected, so every value has exactly one
-  code (up to case, aliases and hyphens). `encode` takes `bytes`, `bytearray`,
-  `memoryview` or any other buffer.
-- The check symbol is the number the symbols spell, mod 37, written with the extra symbols
-  `*`, `~`, `$`, `=` and `U` for 32 to 36. It is the same rule for bytes and integers, so
-  `decode_int(code, check=True)` also verifies any checked bytes code except the one for
-  empty bytes (`"0"`, an empty number). It catches every single wrong symbol and every swap
-  of two neighbouring symbols. It does not catch an inserted or a dropped symbol, and a
-  leading `0` adds nothing to the value: dropping it from a checked bytes code can still
-  decode, to different bytes. The check symbol is never part of `width`, but `group` counts
-  it.
-- Decoders take `str` only and raise `TypeError` for anything else; `encode` raises
-  `TypeError` for `str`. Bad `width` or `group` values raise `TypeError` or a plain
-  `ValueError`, never `CrockfordError`.
-- Encoding and decoding run in linear time, including integers far past the limit Python puts
-  on decimal string conversion.
+## Why crock
 
-## Why
+These are the other Crockford base32 packages on PyPI, as published on 2026-10-22:
 
-Crockford base32 is a human-friendly encoding: no ambiguous characters, forgiving
-on input, with an optional check symbol. On PyPI the most used option,
-`base32-crockford`, encodes integers only, has no type hints, and has not seen a
-release since 2015. `crock` is a clean, zero-dependency, `mypy --strict` take that
-handles both arbitrary bytes and integers, ships the check symbol for both, and
-normalizes look-alikes and hyphens on decode.
+- [`base32-crockford`](https://pypi.org/project/base32-crockford/) 0.3.0, last released in
+  March 2015: integers only, no type hints, and a float is truncated (`encode(4.2)` gives
+  `"4"`). Without `checksum=True`, `decode("1U")` reads the check-only symbol `U` as a digit
+  and returns 68. Its own test file and seeded comparisons with its code run against
+  `crock` in this repository; the guide lists the few places where the two differ.
+- [`base32-lib`](https://pypi.org/project/base32-lib/) 1.1.1: integers only, lower-case
+  output, and a two digit ISO 7064 checksum instead of Crockford's check symbol.
+- [`crockford32`](https://pypi.org/project/crockford32/) 1.0.2: a compiled extension
+  published only as a Linux x86-64 wheel for CPython 3.10, and its decoder does not apply
+  the I, L and O conversions.
+- [`python-ulid`](https://pypi.org/project/python-ulid/): Crockford base32 for 16 byte
+  ULIDs only.
+
+The standard library's `base64.b32hexencode` (Python 3.10 and newer) uses the RFC 4648
+"extended hex" alphabet, which includes I, L, O and U and pads with `=`.
+
+`crock` covers both integers and arbitrary bytes, writes and verifies the check symbol for
+both, normalizes look-alikes and hyphens, runs in linear time on megabyte inputs, ships
+type information checked with `mypy --strict`, and has no dependencies.
+
+## Documentation
+
+- [Guide](https://github.com/JaviLianes8/crock/blob/main/GUIDE.md): the rules for integers,
+  bytes, the check symbol, errors and types.
+- [Changelog](https://github.com/JaviLianes8/crock/blob/main/CHANGELOG.md)
 
 ## License
 

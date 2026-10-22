@@ -12,7 +12,7 @@ Progress:
 - [x] Errors, typing, docstrings and doctests (items 2 to 5)
 - [x] Ground truth: sources fetched live, reference implementations run (item 7)
 - [ ] Contract, fuzz and author mutation round (items 6, 9, 18)
-- [ ] Docs: README, GUIDE, CHANGELOG (items 11, 12)
+- [x] Docs: README, GUIDE, CHANGELOG (items 11, 12)
 - [ ] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [ ] Gates (item 15), final run
 - [ ] PR and trace guard

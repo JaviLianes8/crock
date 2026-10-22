@@ -6,6 +6,37 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-22
+
+First release on PyPI. The public API is stable: the six names `encode`, `decode`,
+`encode_int`, `decode_int`, `normalize` and `CrockfordError`, their signatures and
+defaults, the symbols they write and accept, the check symbol rule, and the exception types
+listed in the guide. Changes after 1.0.0 follow Semantic Versioning.
+
+### Changed
+
+- The first argument of every function is positional-only (`encode(data, /, ...)`,
+  `decode(text, /, ...)`, `encode_int(n, /, ...)` and so on); passing it by name raises
+  `TypeError`. The options stay keyword-only.
+- A negative `width` or `group` raises `ValueError` with a fixed message
+  (`width must not be negative`) instead of quoting the value, which could fail to print
+  for very large integers.
+- A `width` larger than `sys.maxsize` raises `ValueError("width is too large")` instead of
+  `OverflowError`.
+- `CrockfordError` reports, prints and pickles as `crock.CrockfordError`.
+- The package no longer exposes a stray `annotations` name.
+
+### Added
+
+- Docstrings with runnable examples on every public name, checked as doctests.
+- A guide (`GUIDE.md`) with the exact rules, the error table and the differences from
+  `base32-crockford`.
+- Python 3.14 support (tested on CPython 3.10 to 3.14, and 3.14 free-threaded).
+- Tests against the specification page, RFC 4648, the ULID specification, the
+  `base32-crockford` test file and code, `python-ulid` and the `base32-encode` and
+  `base32-decode` npm packages, all fetched or installed by `scripts/fetch_upstream.py`
+  and never shipped. Seeded fuzz tests for hostile input.
+
 ## [0.2.0]
 
 ### Added
