@@ -109,7 +109,8 @@ def test_wheel_and_sdist_contents(dist: Path) -> None:
     assert "crock-1.0.0.dist-info/licenses/LICENSE" in names
     metadata = zipfile.ZipFile(wheel).read("crock-1.0.0.dist-info/METADATA").decode()
     assert "Classifier: Development Status :: 5 - Production/Stable" in metadata
-    assert "Requires-Dist" not in metadata.replace("extra == 'dev'", "")
+    requires = [line for line in metadata.splitlines() if line.startswith("Requires-Dist:")]
+    assert requires and all(line.endswith("; extra == 'dev'") for line in requires), requires
     with tarfile.open(sdist) as archive:
         listing = [name.split("/", 1)[1] for name in archive.getnames() if "/" in name]
     for absent in ("IMPROVEMENTS-round", "CERT-1.0-", "upstream/rfc", "node_modules", ".venv"):
