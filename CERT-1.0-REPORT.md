@@ -16,6 +16,7 @@ Progress:
 - [x] Packaging, e2e, every Python (items 8, 10, 13, 14)
 - [x] Gates (item 15), final run
 - [x] PR #3 and trace guard CLEAN; merge and publish left to the maintainer
+- [x] QA round 1 findings fixed (lenses c and e), gates, matrix and mutations rerun at b4f8a3c
 - [ ] Five QA lenses report PASS (item 19)
 - [ ] Independent reviewer reports PASS (item 16)
 
@@ -25,14 +26,14 @@ Progress:
 | --- | --- | --- |
 | 1 | Public API reviewed for stability | PASS: six names kept; first arguments made positional-only, signatures pinned; every change in the CHANGELOG |
 | 2 | `__all__` exact, no private imports in docs | PASS: the package exposes exactly the six names (the stray `annotations` is gone) |
-| 3 | Docstrings with runnable examples, doctests | PASS: every public name and the package docstring, 7 doctest items, README (4 blocks) and GUIDE (5 blocks) executed |
-| 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed`, typed consumer of the installed wheel |
+| 3 | Docstrings with runnable examples, doctests | PASS: every public name and the package docstring, 7 doctest items, README (4 blocks) and GUIDE (5 blocks) executed; the GUIDE shows each signature exactly as installed (pinned by a test) |
+| 4 | Typed end to end | PASS: `mypy --strict src tests`, `py.typed`, typed consumer of the installed wheel; `typing.get_type_hints` resolves every public name at run time |
 | 5 | Typed, documented, bounded errors | PASS: `CrockfordError` (a `ValueError`, reported as `crock.CrockfordError`), `TypeError`, plain `ValueError` for options; messages name at most one symbol |
-| 6 | Contract tests of every public name | PASS |
+| 6 | Contract tests of every public name | PASS: including NumPy booleans refused and non-ASCII lookalikes refused by every decoder, with and without `check` |
 | 7 | Real ground truth | PASS: 5 files fetched with a hash manifest, 3 independent implementations run |
 | 8 | Real e2e from the wheel | PASS: wheel and sdist built and inspected, wheel driven from an empty folder, typed consumer; no CLI; not on PyPI, so no upgrade |
 | 9 | Seeded fuzz, no crash, hang or blowup | PASS |
-| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2, 3.14.2 free-threaded |
+| 10 | Supported Pythons | PASS: CPython 3.10.19, 3.11.5, 3.12.12 (each with NumPy 1.26.4), 3.13.2, 3.14.2, 3.14.2 free-threaded |
 | 11 | README and `twine check` | PASS: `twine check --strict`, absolute links, problem, verified comparison, GUIDE and CHANGELOG links |
 | 12 | Dated CHANGELOG section | PASS: 1.0.0, 2026-10-22 |
 | 13 | pyproject 1.0.0, Production/Stable | PASS |
@@ -40,7 +41,7 @@ Progress:
 | 15 | Gates each exit 0 | PASS: see Gates |
 | 16 | Independent reviewer | pending |
 | 17 | PR and trace guard | PR #3 from `release/1.0.0`, trace guard CLEAN; merge and publish left to the maintainer |
-| 18 | Contracts bite (mutations) | PASS: author round 40 mutants, 39 killed, 1 equivalent |
+| 18 | Contracts bite (mutations) | PASS: author rounds, 52 mutants at b4f8a3c, 51 killed, 1 equivalent |
 | 19 | Five independent QA lenses | pending |
 
 ## Baseline on 0.2.0 (before any change)
@@ -166,10 +167,54 @@ per-test limit and bytecode caching disabled. 39 killed; M27 is equivalent. The 
 | M39 | error reported from the private module | doctest `decode` |
 | M40 | negative option quoted in the message | `test_contract::test_bad_options_raise_a_plain_value_error_with_a_short_message` |
 
+Second round at b4f8a3c, after the QA round 1 fixes, same method on another machine with
+CPython 3.14.2 and NumPy 2.5.4: M1 to M40 rerun (M23 adapted to the new boolean check,
+still killed by `test_types::test_encode_int_refuses_bool_float_and_text`; every kill
+above held, M27 still equivalent) plus twelve new mutants, all killed. M44 only changes
+code that runs on Python 3.10 and 3.11, so it was run on CPython 3.10.19.
+
+| Id | Mutation | Killed by |
+| --- | --- | --- |
+| M41 | NumPy 1.x booleans accepted as integers | `test_types::test_numpy_booleans_are_refused_like_bool` |
+| M42 | NumPy boolean type name misspelt | `test_types::test_numpy_booleans_are_refused_like_bool` |
+| M43 | `Buffer` defined only for the type checker (3.12 and later) | `test_contract::test_annotations_resolve_at_run_time[encode]` |
+| M44 | run-time `Buffer` stand-in registers nothing (3.10 and 3.11) | `test_contract::test_annotations_resolve_at_run_time[encode]` on 3.10.19 |
+| M45 | `decode` with `check` upper-cases with Unicode rules first | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode-True]` |
+| M46 | `decode_int` with `check` lower-cases with Unicode rules first | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode_int-True]` |
+| M47 | `normalize` with `check` upper-cases with Unicode rules first | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[normalize-True]` |
+| M48 | `decode` keeps a Unicode case mapping that yields ASCII | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode-False]` |
+| M49 | NFKC folding before every check split | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode-True]` |
+| M50 | `decode` folds with NFKC | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode-False]` |
+| M51 | `normalize` folds with NFKC | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[normalize-False]` |
+| M52 | `decode_int` folds with NFKC | `test_lookalikes::test_a_lookalike_anywhere_is_refused_by_name[decode_int-False]` |
+
+## QA round 1 findings and fixes (item 19)
+
+Round 1 ran the five lenses at db158db. Findings fixed in b4f8a3c, each with a test:
+
+- Robustness: under NumPy 1.x, `numpy.bool_` (not a `bool` subclass, but with `__index__`)
+  was accepted as 0 or 1 for `n`, `width` and `group`, against the guide. It is now refused
+  with the same `TypeError` as `bool`; tested with a stand-in of that type everywhere and
+  with the real NumPy 1.26.4 and 2.5.4 scalars where installed.
+- Robustness: `typing.get_type_hints(crock.encode)` raised `NameError` because `Buffer` only
+  existed for the type checker. It now exists at run time (`collections.abc.Buffer` on 3.12
+  and later, a small registered stand-in on 3.10 and 3.11); every public name is tested.
+- Contract strength: nothing pinned that characters which fold to an accepted symbol under
+  Unicode case mapping or NFKC (dotless i, long s, the Kelvin sign, superscript one, the
+  fullwidth forms) are refused; the library refused them, but folding could be added
+  without a test failing. `tests/test_lookalikes.py` now checks every decoder, with and
+  without `check`, with the lookalike in every body and check position, in upper case,
+  lower case and grouped codes, and that the message names the character.
+- Docs: the guide wrote the signatures without the positional-only marker. They now match
+  the installed signatures, which a test compares.
+
+Both changes in behaviour are in the CHANGELOG.
+
 ## Packaging, e2e and Pythons (items 8, 10, 13, 14)
 
-- Built from a fresh clone at d66914f: `crock-1.0.0-py3-none-any.whl` (sha256 b00f817d...)
-  and `crock-1.0.0.tar.gz` (8a2f8847...); `twine check --strict` passes both. The wheel holds
+- Built from a fresh clone at b4f8a3c: `crock-1.0.0-py3-none-any.whl` (10,767 bytes, sha256
+  ad77c4fa...) and `crock-1.0.0.tar.gz` (37,047 bytes, dea3de6e...); `twine check --strict`
+  passes both. The wheel holds
   the six modules, `py.typed`, METADATA (Production/Stable, every requirement a `dev`
   extra), WHEEL, RECORD and `licenses/LICENSE`. The sdist holds the sources, tests, scripts,
   README, GUIDE, CHANGELOG, CONTRIBUTING, LICENSE and the upstream manifest only (no
@@ -178,15 +223,17 @@ per-test limit and bytecode caching disabled. 39 killed; M27 is equivalent. The 
   wheel in a fresh venv, runs a consumer program from an empty folder with `-I` (results,
   errors, pickling, positional-only, `7**100000` round trip) and type-checks a consumer
   with `mypy --strict` against the installed package. crock has no command line tool.
-- Every interpreter on this PC from `requires-python` up, each installing the built wheel in
-  a fresh venv and running the sdist's own suite with `src` removed (fetched files and all
-  references present): CPython 3.10.19, 3.11.5, 3.12.12, 3.13.2, 3.14.2 and 3.14.2
-  free-threaded, 343 passed and 2 skipped each (the two e2e tests, which need the source
-  tree and ran separately). 3.8 and 3.9 are below `requires-python`.
+- Every interpreter version on this PC from `requires-python` up, at b4f8a3c on the build
+  machine (the same CPython releases, installed there for the run), each installing the
+  built wheel in a fresh venv and running the sdist's own suite with `src` removed (fetched
+  files and all references present): CPython 3.10.19, 3.11.5 and 3.12.12 with NumPy 1.26.4,
+  372 passed each; 3.13.2, 3.14.2 and 3.14.2 free-threaded without NumPy, 370 passed each;
+  2 skipped everywhere (the two e2e tests, which need the source tree and ran with the
+  gates). 3.8 and 3.9 are below `requires-python`.
 
 ## Gates (item 15)
 
-At d66914f on another machine, from a fresh clone with the fetched sources, Node.js
-references and `CROCK_E2E=1`, each command on its own: `ruff format --check .`,
-`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `pytest` (352 passed, no
-skips) all exit 0.
+At b4f8a3c on another machine, CPython 3.14.2 with NumPy 2.5.4, from a fresh clone with the
+fetched sources, Node.js references and `CROCK_E2E=1`, each command on its own:
+`ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and
+`pytest` (381 passed, no skips) all exit 0.
