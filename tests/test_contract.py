@@ -6,6 +6,7 @@ import doctest
 import importlib.resources
 import inspect
 import pickle
+import sys
 
 import pytest
 
@@ -144,3 +145,23 @@ def test_every_function_returns_the_promised_type() -> None:
     assert type(normalize(Text("ab"))) is str
     assert type(normalize(Text("16jd"), check=True)) is str
     assert type(decode_int(Text("ab"))) is int
+
+
+def test_the_message_names_the_first_invalid_symbol_never_a_hyphen() -> None:
+    for text, symbol in [
+        ("1-!", "!"),
+        ("-%-1", "%"),
+        ("ab-cd-\xe4", "\xe4"),
+        ("--\ud800", "\ud800"),
+    ]:
+        for call in (decode, decode_int, normalize):
+            with pytest.raises(CrockfordError) as caught:
+                call(text)
+            assert str(caught.value) == f"invalid symbol: {symbol!r}"
+    with pytest.raises(CrockfordError, match=r"^invalid symbol: '!'$"):
+        decode_int("1-!-0", check=True)
+
+
+def test_a_width_one_past_the_largest_string_length_is_refused() -> None:
+    with pytest.raises(ValueError, match=r"^width is too large$"):
+        encode_int(1, width=sys.maxsize + 1)
