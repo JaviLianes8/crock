@@ -1,0 +1,63 @@
+{
+  "crockford-base32.html": {
+    "title": "Douglas Crockford, Base 32 (page dated 2019-03-04)",
+    "url": "https://www.crockford.com/base32.html",
+    "revision": "page as fetched",
+    "licence": "All rights reserved by the author; fetched for testing only, never redistributed",
+    "fetched": "2026-10-22",
+    "size": 9550,
+    "sha256": "7a3aa04f5dd76fcedcf2fbbc357759ac2ffb5794685e412bf9017f33f6a85060"
+  },
+  "rfc4648.txt": {
+    "title": "RFC 4648, The Base16, Base32, and Base64 Data Encodings",
+    "url": "https://www.rfc-editor.org/rfc/rfc4648.txt",
+    "revision": "published RFC (immutable)",
+    "licence": "IETF Trust Legal Provisions, https://trustee.ietf.org/license-info",
+    "fetched": "2026-10-22",
+    "size": 35491,
+    "sha256": "84e14418f795d503be5f34bf23ce4ebaa119e9ec7c9f667d8caeb111385b178f"
+  },
+  "jbittel-test.py": {
+    "title": "base32-crockford test file",
+    "url": "https://raw.githubusercontent.com/jbittel/base32-crockford/1ffb6021485b666ea6a562abd0a1ea6f7021188f/test.py",
+    "revision": "commit 1ffb6021485b666ea6a562abd0a1ea6f7021188f",
+    "licence": "BSD-3-Clause, https://github.com/jbittel/base32-crockford/blob/master/LICENSE",
+    "fetched": "2026-10-22",
+    "size": 2128,
+    "sha256": "24034fd22dddcaf8e935d37f1c1e865e854420e5e66edb3c9485306c178b39b4"
+  },
+  "jbittel-base32_crockford.py": {
+    "title": "base32-crockford reference implementation (same bytes as the module in the PyPI 0.3.0 wheel)",
+    "url": "https://raw.githubusercontent.com/jbittel/base32-crockford/1ffb6021485b666ea6a562abd0a1ea6f7021188f/base32_crockford.py",
+    "revision": "commit 1ffb6021485b666ea6a562abd0a1ea6f7021188f",
+    "licence": "BSD-3-Clause, https://github.com/jbittel/base32-crockford/blob/master/LICENSE",
+    "fetched": "2026-10-22",
+    "size": 5182,
+    "sha256": "e1d17277d26dc67e3ecf226282b7b6979f58a89e1d700e69771476f00f1ed4b5"
+  },
+  "ulid-spec-README.md": {
+    "title": "ULID specification",
+    "url": "https://raw.githubusercontent.com/ulid/spec/d0c7170df4517939e70129b4d6462cc162f2d5bf/README.md",
+    "revision": "commit d0c7170df4517939e70129b4d6462cc162f2d5bf",
+    "licence": "GPL-3.0, https://github.com/ulid/spec/blob/master/LICENSE (fetched for testing only, never redistributed)",
+    "fetched": "2026-10-22",
+    "size": 9676,
+    "sha256": "1f6799a6c33e2f2561ab26dd98f67af966dc3953b84bb595f629089828a0e822"
+  },
+  "node:base32-encode": {
+    "title": "base32-encode npm package (Crockford variant), run as an independent bytes encoder",
+    "url": "https://www.npmjs.com/package/base32-encode/v/2.0.0",
+    "revision": "2.0.0",
+    "licence": "MIT",
+    "fetched": "2026-10-22",
+    "npm": "base32-encode@2.0.0"
+  },
+  "node:base32-decode": {
+    "title": "base32-decode npm package (Crockford variant), run as an independent bytes decoder",
+    "url": "https://www.npmjs.com/package/base32-decode/v/1.0.0",
+    "revision": "1.0.0",
+    "licence": "MIT",
+    "fetched": "2026-10-22",
+    "npm": "base32-decode@1.0.0"
+  }
+}

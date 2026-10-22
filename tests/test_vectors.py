@@ -1,4 +1,8 @@
-"""Golden vectors copied from external sources, fetched on 2026-10-12 from the URL beside each."""
+"""Golden vectors copied from external sources (fetched 2026-10-12, the URL beside each).
+
+They run without the fetched files. When tests/upstream holds them (scripts/fetch_upstream.py),
+test_spec_crockford, test_spec_rfc4648 and test_upstream_suite check these copies against them.
+"""
 
 from __future__ import annotations
 

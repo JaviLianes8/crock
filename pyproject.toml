@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "crock"
-version = "0.2.0"
+version = "1.0.0"
 description = "Typed Crockford base32 for bytes and ints, with normalization and an optional check symbol"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Javier Lianes", email = "javier@lianes8studio.com" }]
-keywords = ["base32", "crockford", "encoding", "check-symbol", "identifiers"]
+keywords = ["base32", "crockford", "crockford-base32", "encoding", "decoding", "check-symbol", "identifiers", "ulid", "short-codes", "human-readable"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
@@ -22,17 +22,18 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries",
     "Typing :: Typed",
 ]
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["ruff", "mypy", "pytest", "build", "twine"]
+dev = ["ruff", "mypy", "pytest", "pytest-timeout", "build", "twine", "python-ulid"]
 
 [project.urls]
 Homepage = "https://lianes8studio.com"
-Repository = "https://github.com/JaviLianes8/crock"
+Source = "https://github.com/JaviLianes8/crock"
 Issues = "https://github.com/JaviLianes8/crock/issues"
 Changelog = "https://github.com/JaviLianes8/crock/blob/main/CHANGELOG.md"
 LinkedIn = "https://www.linkedin.com/in/jlianes/"
@@ -42,7 +43,13 @@ Funding = "https://buymeacoffee.com/jlianesglrs"
 packages = ["src/crock"]
 
 [tool.hatch.build.targets.sdist]
-exclude = ["IMPROVEMENTS-round.md"]
+# Third-party test files are fetched locally and never shipped; only their manifest is.
+exclude = [
+    "IMPROVEMENTS-round*.md",
+    "CERT-1.0-*.md",
+    "tests/upstream/*",
+    "!tests/upstream/MANIFEST.json",
+]
 
 [tool.ruff]
 line-length = 100
@@ -54,8 +61,11 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
 [tool.mypy]
 python_version = "3.10"
 strict = true
+# Fetched third-party files (see scripts/fetch_upstream.py) are not ours to type.
+exclude = ["tests/upstream/"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src", "tests"]
 pythonpath = ["src"]
-addopts = "-q"
+addopts = "-q --doctest-modules --ignore=tests/upstream"
+timeout = 300
