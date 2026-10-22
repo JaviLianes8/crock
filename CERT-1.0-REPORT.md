@@ -22,7 +22,7 @@ Progress:
 - [x] QA round 3 findings at 1e2aa94 fixed (lens e) in b233cd3, gates, matrix and the two mutants run
 - [x] Five QA lenses report PASS (item 19)
 - [x] Independent reviewer reports PASS (item 16)
-- [ ] Final gates on a fresh clone of the pushed head, trace guard CLEAN
+- [x] Final gates on a fresh clone of the pushed head, trace guard CLEAN
 
 ## Scorecard
 
@@ -483,3 +483,14 @@ At b4f8a3c on another machine, CPython 3.14.2 with NumPy 2.5.4, from a fresh clo
 fetched sources, Node.js references and `CROCK_E2E=1`, each command on its own:
 `ruff format --check .`, `ruff check .`, `mypy --strict src`, `mypy --strict src tests` and
 `pytest` (381 passed, no skips) all exit 0.
+
+Final run at bbc1d3c (the commit before this one, which changes only this report), from a
+fresh clone of `release/1.0.0` from GitHub with the fetched sources and the Node.js
+references, CPython 3.13.2 with NumPy 2.5.4, each command on its own: `ruff format --check .`,
+`ruff check .`, `mypy --strict src`, `mypy --strict src tests` and `CROCK_E2E=1 pytest` (418
+passed, nothing skipped) all exit 0. `python -m build` gives `crock-1.0.0-py3-none-any.whl`
+(11,351 bytes, sha256 368ff667...) and `crock-1.0.0.tar.gz` (39,873 bytes, 6d996632...);
+every file in the wheel is byte for byte the one in the reviewed wheel at cb913f0 (the
+archive sizes differ only by compression). `twine check --strict` passes both. The wheel
+installed in a fresh venv, imported from site-packages, and the sdist's suite run against it
+with `src` removed: 409 passed and 2 skipped (the two e2e tests, which ran with the gates).
