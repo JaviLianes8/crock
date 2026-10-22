@@ -26,13 +26,15 @@ listed in the guide. Changes after 1.0.0 follow Semantic Versioning.
 - `CrockfordError` reports, prints and pickles as `crock.CrockfordError`.
 - The package no longer exposes a stray `annotations` name.
 - NumPy booleans are refused as an integer, `width` or `group` with the same `TypeError` as
-  `bool`; under NumPy 1.x `numpy.bool_` was accepted as 0 or 1.
+  `bool`; up to NumPy 2.2 (`numpy.bool_` in 1.x, `numpy.bool` from 2.0) they were accepted
+  as 0 or 1.
 - The annotations of every public function resolve at run time
   (`typing.get_type_hints(crock.encode)` used to raise `NameError`), so runtime validators
   and documentation tools can read them. On Python 3.12 and later `data` is annotated with
   `collections.abc.Buffer`; on 3.10 and 3.11 the annotation is a stand-in that matches
-  `bytes`, `bytearray`, `memoryview`, `array.array` and `mmap.mmap` only, so a runtime type
-  checker there refuses other buffers that `encode` accepts (the guide has the details).
+  `bytes`, `bytearray`, `memoryview`, `array.array` and `mmap.mmap` (where available) only,
+  so a runtime type checker there refuses other buffers that `encode` accepts (the guide
+  has the details).
 
 ### Added
 

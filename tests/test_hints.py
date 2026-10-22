@@ -5,8 +5,10 @@ from __future__ import annotations
 import array
 import collections.abc
 import mmap
+import subprocess
 import sys
 import typing
+from pathlib import Path
 
 import pytest
 
@@ -48,3 +50,18 @@ def test_what_encode_refuses_is_not_an_instance_of_the_hint(data: object) -> Non
     assert not isinstance(data, data_hint())
     with pytest.raises(TypeError):
         crock.encode(data)  # type: ignore[arg-type]
+
+
+def test_crock_imports_and_encodes_without_mmap() -> None:
+    # WASI and Emscripten builds of CPython have no mmap module.
+    code = (
+        "import sys, typing; sys.path.insert(0, sys.argv[1]); sys.modules['mmap'] = None; "
+        "import crock; hint = typing.get_type_hints(crock.encode)['data']; "
+        "print(crock.encode(b'foobar'), isinstance(b'', hint), isinstance(bytearray(), hint))"
+    )
+    root = str(Path(crock.__file__).parent.parent)
+    done = subprocess.run(
+        [sys.executable, "-I", "-c", code, root], capture_output=True, text=True, check=False
+    )
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.split() == ["CSQPYRK1E8", "True", "True"]

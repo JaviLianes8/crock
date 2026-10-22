@@ -18,18 +18,24 @@ elif TYPE_CHECKING:
     from typing_extensions import Buffer
 else:
     import array
-    import mmap
+
+    try:
+        import mmap
+    except ImportError:  # WASI and Emscripten builds have no mmap module
+        mmap = None
 
     # Like the typing_extensions stand-in, without the dependency. Python 3.10 and 3.11
-    # cannot ask a class for the buffer protocol, so the standard library buffers are
+    # cannot ask a class for the buffer protocol, so the common standard library buffers are
     # registered by name; encode itself accepts every buffer.
     class Buffer(abc.ABC):  # noqa: B024
         """Objects that support the buffer protocol."""
 
         __slots__ = ()
 
-    for _kind in (bytes, bytearray, memoryview, array.array, mmap.mmap):
+    for _kind in (bytes, bytearray, memoryview, array.array):
         Buffer.register(_kind)
+    if mmap is not None:
+        Buffer.register(mmap.mmap)
 
 
 def encode(data: Buffer, /, *, check: bool = False, group: SupportsIndex | None = None) -> str:

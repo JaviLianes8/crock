@@ -28,8 +28,10 @@ def shaped(module: str, name: str) -> Make:
     return Scalar
 
 
-# NumPy 1.x booleans are not bool subclasses, yet have __index__.
+# NumPy booleans are not bool subclasses, yet up to NumPy 2.2 they have __index__. The type
+# is named bool_ in NumPy 1.x and bool from NumPy 2.0.
 NUMPY_ONE_BOOL = shaped("numpy", "bool_")
+NUMPY_TWO_BOOL = shaped("numpy", "bool")
 
 
 def numpy_module() -> Any:
@@ -40,13 +42,26 @@ def numpy_module() -> Any:
 
 
 def booleans() -> list[object]:
-    found = [NUMPY_ONE_BOOL(True), NUMPY_ONE_BOOL(False)]
+    found = [
+        NUMPY_ONE_BOOL(True),
+        NUMPY_ONE_BOOL(False),
+        NUMPY_TWO_BOOL(True),
+        NUMPY_TWO_BOOL(False),
+    ]
     numpy = numpy_module()
     return found if numpy is None else [*found, numpy.True_, numpy.False_]
 
 
 def integer_types() -> list[Make]:
-    found = [shaped("numpy", "int64"), shaped("numpy", "uint8"), shaped("mylib", "bool_")]
+    found = [
+        shaped("numpy", "int64"),
+        shaped("numpy", "uint8"),
+        shaped("mylib", "bool_"),
+        shaped("mylib", "bool"),
+        # Only the numpy module itself is NumPy: a prefix of the name is not enough.
+        shaped("numpyro", "bool_"),
+        shaped("numpy_ext", "bool"),
+    ]
     numpy = numpy_module()
     if numpy is None:
         return found

@@ -91,9 +91,11 @@ These are the other Crockford base32 packages on PyPI, as published on 2026-10-2
   output, and a two digit ISO 7064 checksum instead of Crockford's check symbol.
 - [`crockford32`](https://pypi.org/project/crockford32/) 1.0.2: a compiled extension
   published only as a Linux x86-64 wheel for CPython 3.10, and its decoder does not apply
-  the I, L and O conversions. Its check symbol for bytes is the value of the bytes mod 37,
-  where `crock` uses the value of the symbols (padding bits included), so the two write
-  different check symbols for most byte strings; the guide explains the choice.
+  the I, L and O conversions. For ASCII bytes its check symbol is the value of the bytes
+  mod 37, where `crock` uses the value of the symbols (padding bits included), so the two
+  write different check symbols for most byte strings; the guide explains the choice. Bytes
+  of 0x80 and above it encodes wrongly: for `b"{\xd5\xd4~"` it writes `FC000ZG` before
+  the check symbol, where the specification gives `FFAX8ZG`.
 - [`python-ulid`](https://pypi.org/project/python-ulid/): Crockford base32 for 16 byte
   ULIDs only.
 
